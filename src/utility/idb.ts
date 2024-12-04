@@ -2,7 +2,7 @@
  * indexedDB related
  */
 
-import { APP_NAME } from '$common'
+import { APP_NAMESPACE } from '$common'
 import localforage from 'localforage'
 import pLimit from 'p-limit'
 import { whenIdle } from './dom'
@@ -10,7 +10,7 @@ import { whenIdle } from './dom'
 export function getIdbCache<T>(tableName: string) {
   const db = localforage.createInstance({
     driver: localforage.INDEXEDDB,
-    name: APP_NAME,
+    name: APP_NAMESPACE,
     storeName: tableName,
   })
   return {
@@ -20,6 +20,9 @@ export function getIdbCache<T>(tableName: string) {
     },
     set(key: string | number, entry: T) {
       return db.setItem(key.toString(), entry)
+    },
+    delete(key: string | number) {
+      return db.removeItem(key.toString())
     },
   }
 }
@@ -33,7 +36,7 @@ export function wrapWithIdbCache<A extends unknown[], FnReturnType>({
   autoCleanUp = true,
 }: {
   fn: (...args: A) => FnReturnType
-  generateKey: (args: NoInfer<A>) => string
+  generateKey: (...args: NoInfer<A>) => string
   tableName: string
   ttl: number
   concurrency?: number
@@ -47,7 +50,7 @@ export function wrapWithIdbCache<A extends unknown[], FnReturnType>({
 
   async function cleanUp() {
     cache.db.iterate((cached: CacheEntry, key) => {
-      if (Date.now() - cached.ts > ttl) {
+      if (!cache || !shouldReuse(cached)) {
         cache.db.removeItem(key)
       }
     })
@@ -61,7 +64,7 @@ export function wrapWithIdbCache<A extends unknown[], FnReturnType>({
   }
 
   async function wrapped(...args: A): Promise<R> {
-    const key = generateKey(args)
+    const key = generateKey(...args)
     const cached = await cache.get(key)
     if (cached && shouldReuse(cached)) return cached.val
     const result = await (limit ? limit(() => fn(...args)) : fn(...args))

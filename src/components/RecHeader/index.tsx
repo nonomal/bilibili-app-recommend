@@ -1,4 +1,4 @@
-import { baseDebug } from '$common'
+import { APP_CLS_TAB_BAR, baseDebug } from '$common'
 import { iconOnlyRoundButtonCss } from '$common/emotion-css'
 import { useSizeExpression } from '$common/hooks/useResizeObserverExpression'
 import { useSticky } from '$common/hooks/useSticky'
@@ -8,7 +8,7 @@ import { OnRefreshContext } from '$components/RecGrid/useRefresh'
 import { bgValue } from '$components/css-vars'
 import { $headerHeight, $usingEvolevdHeader } from '$header'
 import { useIsDarkMode } from '$modules/dark-mode'
-import { ConfigIcon } from '$modules/icon'
+import { IconForConfig } from '$modules/icon'
 import { useSettingsSnapshot } from '$modules/settings'
 import { isMac } from '$ua'
 import { getElementOffset, shouldDisableShortcut } from '$utility/dom'
@@ -46,13 +46,7 @@ export const RecHeader = forwardRef<
     rightSlot?: ReactNode
   }
 >(function RecHeader({ onRefresh, refreshing, leftSlot, rightSlot }, ref) {
-  const {
-    accessKey,
-    pureRecommend,
-    styleUseWhiteBackground,
-    showModalFeedEntry,
-    styleUseStickyTabbarInPureRecommend,
-  } = useSettingsSnapshot()
+  const { accessKey, pureRecommend, showModalFeedEntry, style } = useSettingsSnapshot()
   const { modalFeedVisible, modalSettingsVisible } = useSnapshot(headerState)
 
   useKeyPress(
@@ -106,7 +100,7 @@ export const RecHeader = forwardRef<
           className={clsx('area-header-wrapper', { sticky })}
           css={
             pureRecommend &&
-            styleUseStickyTabbarInPureRecommend && [
+            style.pureRecommend.useStickyTabbar && [
               css`
                 position: sticky;
                 top: ${headerHeight - 1}px; // 有缝隙, 故 -1 px
@@ -130,6 +124,7 @@ export const RecHeader = forwardRef<
           }
         >
           <div
+            className={APP_CLS_TAB_BAR}
             data-raw-class='area-header'
             css={css`
               position: relative;
@@ -181,7 +176,7 @@ export const RecHeader = forwardRef<
 
                 <Button onClick={showModalSettings} css={iconOnlyRoundButtonCss}>
                   <ModalSettingsHotkey />
-                  <ConfigIcon {...size(14)} />
+                  <IconForConfig {...size(14)} />
                 </Button>
 
                 <RefreshButton
@@ -233,7 +228,7 @@ function useExpandToFullWidthCss() {
 
   return useMemo(() => {
     if (!xScrolling) {
-      // https://github.com/magicdawn/bilibili-app-recommend/issues/120
+      // https://github.com/magicdawn/bilibili-gate/issues/120
       const scrollbarWidth = isMac ? '0px' : '20px'
       return css`
         margin-inline: calc((100% - 100vw + ${scrollbarWidth}) / 2);

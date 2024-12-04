@@ -4,11 +4,11 @@
 
 import { IN_BILIBILI_HOMEPAGE, baseDebug } from '$common'
 import { isWebApiSuccess, request } from '$request'
-import { whenIdle } from '$utility'
+import { whenIdle } from '$utility/dom'
 import { proxySetWithGmStorage } from '$utility/valtio'
 import { useSnapshot } from 'valtio'
-import type { ListBlackJson } from './api.list-black'
 import { modifyRelations } from './common'
+import type { ListBlackJson } from './types/list-black'
 
 const debug = baseDebug.extend('service:user:relations:blacklist')
 
@@ -24,7 +24,7 @@ export const blacklistMids = await proxySetWithGmStorage('blacklist-mids')
 
 export function useInBlacklist(upMid?: string) {
   const set = useSnapshot(blacklistMids)
-  return upMid && set.has(upMid)
+  return !!upMid && set.has(upMid)
 }
 
 function blacklistActionFactory(action: 'follow' | 'remove') {

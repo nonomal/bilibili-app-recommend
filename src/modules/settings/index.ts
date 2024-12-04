@@ -1,11 +1,25 @@
-import { APP_NAME, IN_BILIBILI_HOMEPAGE } from '$common'
+import { baseDebug, IN_BILIBILI_HOMEPAGE } from '$common'
 import { ETab } from '$components/RecHeader/tab-enum'
 import { VideoLinkOpenMode } from '$components/VideoCard/index.shared'
 import { EAppApiDevice } from '$define/index.shared'
-import { toast } from '$utility/toast'
-import { pick } from 'es-toolkit'
+import {
+  getLeafPaths,
+  type BooleanPaths,
+  type LeafPaths,
+  type ListPaths,
+} from '$utility/object-paths'
+import toast from '$utility/toast'
+import { cloneDeep, isEqual, isNil, mergeWith } from 'es-toolkit'
+import { get, set } from 'es-toolkit/compat'
+import type { Get, PartialDeep } from 'type-fest'
 import { proxy, snapshot, subscribe, useSnapshot } from 'valtio'
 import { saveToDraft } from './cloud-backup'
+
+const debug = baseDebug.extend('settings')
+
+/**
+ * 命名: 模块/tab + 场景 + 功能
+ */
 
 export const initialSettings = {
   accessKey: '',
@@ -64,96 +78,131 @@ export const initialSettings = {
   /**
    * tab=dynamic-feed
    */
-  enableFollowGroupFilterForDynamicFeed: true, // 下拉筛选支持 - 关注分组
+  dynamicFeed: {
+    showLive: true, // 在动态中显示直播
+
+    followGroup: {
+      enabled: true, // 下拉筛选支持 - 关注分组
+      forceUseMergeTimelineIds: [] as number[],
+    },
+
+    whenViewAll: {
+      enableHideSomeContents: false, // 在「全部」动态中隐藏 UP 的动态 & 在「全部」动态中隐藏此分组的动态
+      hideIds: [] as string[], // `up:${mid}` | `follow-group:${id}`
+    },
+
+    advancedSearch: false,
+    __internal: {
+      cacheAllItemsEntry: false,
+      cacheAllItemsUpMids: [] as string[], // enable for these up
+      addCopyBvidButton: false,
+      externalSearchInput: false, // more convenient
+    },
+  },
 
   /**
    * tab=watchlater
    */
-  shuffleForWatchLater: true, // 打乱顺序
-  addSeparatorForWatchLater: true, // 添加 "近期" / "更早" 分割线
+  watchlaterUseShuffle: false, // 打乱顺序
+  watchlaterAddSeparator: true, // 添加 "近期" / "更早" 分割线
   watchlaterNormalOrderSortByAddAtAsc: false,
 
   /**
    * tab=fav
    */
-  shuffleForFav: true, // 打乱顺序
-  excludeFavFolderIds: [] as string[], // 忽略的收藏夹
-  addSeparatorForFav: true, // 收藏夹分割线
+  fav: {
+    // useShuffle: false, // 打乱顺序
+    addSeparator: true, // 收藏夹分割线
+    excludedFolderIds: [] as string[], // 忽略的收藏夹
+  },
 
   /**
    * tab=popular-general
    */
-  // shuffleForPopularGeneral: false, // shuffle
-  anonymousForPopularGeneral: false, // without credentials
+  popularGeneralUseAnonymous: false, // without credentials
 
   /**
    * tab=popular-weekly
    */
-  shuffleForPopularWeekly: false, // shuffle
+  popularWeeklyUseShuffle: false, // shuffle
 
   /**
    * tab=live
    */
-  showLiveInDynamicFeed: true, // 在动态中显示直播
 
   /**
    * 过滤器模块
-   * 使用 flat config 方便使用 FlagSettingItem
    */
-  filterEnabled: true,
+  filter: {
+    enabled: true,
 
-  // 最少播放量
-  filterMinPlayCountEnabled: false,
-  filterMinPlayCount: 10000,
+    // 最少播放量
+    minPlayCount: {
+      enabled: false,
+      value: 10000,
+    },
 
-  // 时长
-  filterMinDurationEnabled: false,
-  filterMinDuration: 60, // 60s
+    // 时长
+    minDuration: {
+      enabled: false,
+      value: 60, // 60s
+    },
 
-  // 已关注豁免
-  exemptForFollowedVideo: true,
+    // 已关注豁免
+    exemptForFollowed: {
+      video: true,
+      // 图文也是有 rcmd_reason = '已关注' 的
+      picture: true,
+    },
 
-  // filter out whose goto = 'picture'
-  filterOutGotoTypePicture: false,
-  // 图文也是有 rcmd_reason = '已关注' 的
-  // 已关注UP的推荐图文, 默认不参与过滤
-  exemptForFollowedPicture: true,
+    // filter out goto = 'picture' | 'bangumi'
+    hideGotoTypePicture: false,
+    hideGotoTypeBangumi: false,
 
-  // filter out whose goto = 'bangumi'
-  filterOutGotoTypeBangumi: false,
-
-  // authorName
-  filterByAuthorNameEnabled: false,
-  filterByAuthorNameKeywords: [] as string[],
-
-  // title
-  filterByTitleEnabled: false,
-  filterByTitleKeywords: [] as string[],
+    byAuthor: {
+      enabled: false,
+      keywords: [] as string[],
+    },
+    byTitle: {
+      enabled: false,
+      keywords: [] as string[],
+    },
+  },
 
   /**
    * 外观
    */
+  style: {
+    general: {
+      // video-source-tab 高度: true 高; false compact;
+      videoSourceTabStandardHeight: true,
 
-  // video-source-tab 高度: true 高; false compact;
-  styleUseStandardVideoSourceTab: true,
+      popoverBorderColorUseColorPrimary: false,
+    },
 
-  // sticky tabbar
-  styleUseStickyTabbarInPureRecommend: true,
+    pureRecommend: {
+      // sticky tabbar
+      useStickyTabbar: true,
 
-  // custom grid | default grid
-  styleUseCustomGrid: true,
+      // custom grid | default grid
+      useCustomGrid: true,
 
-  // bg1
-  styleUseWhiteBackground: true,
+      // bg1
+      useWhiteBackground: true,
 
-  // 隐藏顶部分区
-  styleHideTopChannel: false,
+      // 隐藏顶部分区
+      hideTopChannel: false,
+    },
 
-  // 使用卡片模式
-  // inspired by https://ai.taobao.com
-  styleUseCardBorder: true,
-  styleUseCardBorderOnlyOnHover: true,
-  styleUseCardBoxShadow: false,
+    videoCard: {
+      // 使用卡片模式
+      // inspired by https://ai.taobao.com
+      useBorder: true,
+      useBorderOnlyOnHover: true,
+      useBoxShadow: false,
+      usePadding: false,
+    },
+  },
 
   /**
    * 颜色主题
@@ -171,6 +220,9 @@ export const initialSettings = {
   // 默认打开模式
   videoLinkOpenMode: VideoLinkOpenMode.Normal,
 
+  // 小窗默认锁定
+  pipWindowDefaultLocked: true,
+
   /**
    * 隐藏的 tab, 使用黑名单, 功能迭代之后新增的 tab, 默认开启.
    * 如果使用白名单, 新增的 tab 会被隐藏
@@ -182,27 +234,25 @@ export const initialSettings = {
    * internal
    */
   __internalEnableCopyBvidInfoContextMenu: false,
-  __internalVideoCardUsePadding: false,
-  __internalHotSubUseTabBar: true,
+  __internalHotSubUseDropdown: false,
 }
 
 export type Settings = typeof initialSettings
-export const settings = proxy({ ...initialSettings })
+export const settings = proxy(cloneDeep(initialSettings))
 
-export type SettingsKey = keyof Settings
-export const allowedSettingsKeys = Object.keys(initialSettings) as SettingsKey[]
+export type LeafSettingsPath = LeafPaths<Settings>
+export type BooleanSettingsPath = BooleanPaths<Settings>
+export type ListSettingsPath = ListPaths<Settings>
 
-export type BooleanSettingsKey = {
-  [k in SettingsKey]: Settings[k] extends boolean ? k : never
-}[SettingsKey]
-
-export type ListSettingsKey = {
-  [k in SettingsKey]: Settings[k] extends Array<any> ? k : never
-}[SettingsKey]
-
-export const internalBooleanKeys = (Object.keys(initialSettings) as SettingsKey[]).filter(
-  (k) => k.startsWith('__internal') && typeof initialSettings[k] === 'boolean',
-) as BooleanSettingsKey[]
+export const allowedLeafSettingsPaths = getLeafPaths(initialSettings)
+export const internalBooleanPaths = allowedLeafSettingsPaths.filter(
+  (p) => p.includes('__internal') && typeof get(initialSettings, p) === 'boolean',
+) as BooleanSettingsPath[]
+debug(
+  'allowedLeafSettingsPaths = %O, internalBooleanPaths = %O',
+  allowedLeafSettingsPaths,
+  internalBooleanPaths,
+)
 
 export function useSettingsSnapshot() {
   return useSnapshot(settings)
@@ -216,15 +266,84 @@ export function getSettingsSnapshot() {
  * storage
  */
 
-const nsp = APP_NAME
-const key = `${nsp}.settings`
+const storageKey = `settings`
 
-export async function load() {
-  const val = await GM.getValue<Settings>(key)
-  if (val && typeof val === 'object') {
-    Object.assign(settings, pick(val, allowedSettingsKeys))
+export function runSettingsMigration(val: object) {
+  // from v0.28.2, remove after several releases
+  const config: Array<[configPath: LeafSettingsPath, legacyConfigPath: string]> = [
+    ['dynamicFeed.showLive', 'dynamicFeedShowLive'],
+    ['dynamicFeed.followGroup.enabled', 'dynamicFeedFollowGroupEnabled'],
+    [
+      'dynamicFeed.followGroup.forceUseMergeTimelineIds',
+      'dynamicFeedFollowGroupForceUseMergeTimelineIds',
+    ],
+    [
+      'dynamicFeed.whenViewAll.enableHideSomeContents',
+      'dynamicFeedWhenViewAllEnableHideSomeContents',
+    ],
+    ['dynamicFeed.whenViewAll.hideIds', 'dynamicFeedWhenViewAllHideIds'],
+    ['dynamicFeed.advancedSearch', 'dynamicFeedAdvancedSearch'],
+
+    // ['fav.useShuffle', 'favUseShuffle'],
+    ['fav.addSeparator', 'favAddSeparator'],
+    ['fav.excludedFolderIds', 'favExcludedFolderIds'],
+
+    ['filter.enabled', 'filterEnabled'],
+    ['filter.minPlayCount.enabled', 'filterMinPlayCountEnabled'],
+    ['filter.minPlayCount.value', 'filterMinPlayCount'],
+    ['filter.minDuration.enabled', 'filterMinDurationEnabled'],
+    ['filter.minDuration.value', 'filterMinDuration'],
+    ['filter.exemptForFollowed.video', 'exemptForFollowedVideo'],
+    ['filter.exemptForFollowed.picture', 'exemptForFollowedPicture'],
+    ['filter.hideGotoTypePicture', 'filterOutGotoTypePicture'],
+    ['filter.hideGotoTypeBangumi', 'filterOutGotoTypeBangumi'],
+    ['filter.byAuthor.enabled', 'filterByAuthorNameEnabled'],
+    ['filter.byAuthor.keywords', 'filterByAuthorNameKeywords'],
+    ['filter.byTitle.enabled', 'filterByTitleEnabled'],
+    ['filter.byTitle.keywords', 'filterByTitleKeywords'],
+
+    ['style.general.videoSourceTabStandardHeight', 'styleUseStandardVideoSourceTab'],
+    ['style.pureRecommend.useStickyTabbar', 'styleUseStickyTabbarInPureRecommend'],
+    ['style.pureRecommend.useCustomGrid', 'styleUseCustomGrid'],
+    ['style.pureRecommend.useWhiteBackground', 'styleUseWhiteBackground'],
+    ['style.pureRecommend.hideTopChannel', 'styleHideTopChannel'],
+    ['style.videoCard.useBorder', 'styleUseCardBorder'],
+    ['style.videoCard.useBorderOnlyOnHover', 'styleUseCardBorderOnlyOnHover'],
+    ['style.videoCard.useBoxShadow', 'styleUseCardBoxShadow'],
+    ['style.videoCard.usePadding', 'styleUseCardPadding'],
+  ]
+  // 伪代码: savedConfig[newName] = savedConfig[legacyName]
+  for (const [configPath, legacyConfigPath] of config) {
+    const haveValue = (v: any) => !isNil(v) // 迁移设置, 只是改名, 不用考虑空数组
+    if (haveValue(get(val, configPath))) {
+      // already have a value
+      continue
+    }
+    if (!haveValue(get(val, legacyConfigPath))) {
+      // no legacy value
+      continue
+    }
+    // fallback to legacy
+    set(val, configPath, get(val, legacyConfigPath))
   }
+}
 
+/**
+ * @private
+ */
+async function __pickSettingsFromGmStorage(): Promise<PartialDeep<Settings>> {
+  const saved = await GM.getValue<Settings>(storageKey)
+  if (saved && typeof saved === 'object') {
+    runSettingsMigration(saved)
+    return pickSettings(saved, allowedLeafSettingsPaths).pickedSettings
+  } else {
+    return {}
+  }
+}
+
+export async function loadAndSetup() {
+  const val = await __pickSettingsFromGmStorage()
+  updateSettings(val)
   // persist when config change
   subscribe(settings, () => {
     save()
@@ -232,21 +351,68 @@ export async function load() {
 }
 
 async function save() {
-  const newVal = snapshot(settings)
-  // console.log('GM.setValue newVal = %o', newVal)
+  /**
+   * existing-update-serialize 多个 Tab 同时修改, 不至于丢失 collection items
+   */
 
-  // GM save
-  await GM.setValue(key, newVal)
+  // existing
+  const existing = await __pickSettingsFromGmStorage()
+  // update
+  const currentSnapshot = cloneDeep(snapshot(settings))
+  mergeWith(existing, currentSnapshot, (targetValue, sourceValue) => {
+    // use default logic
+    if (targetValue === existing.customTabKeysOrder) {
+      return
+    }
+    const shouldMergeSimpleArray =
+      Array.isArray(targetValue) &&
+      Array.isArray(sourceValue) &&
+      !!(targetValue.length || sourceValue.length) && // have value
+      new Set([...targetValue, ...sourceValue].map((x) => typeof x)).size === 1 && // primitive value
+      !isEqual(targetValue, sourceValue) // changed
+    if (shouldMergeSimpleArray) {
+      return Array.from(new Set([...targetValue, ...sourceValue]))
+    }
+  })
+  // serialize
+  //  1) save to GM storage
+  await GM.setValue(storageKey, existing)
+  //  2) http backup
+  await saveToDraft(existing)
+}
 
-  // http backup
-  await saveToDraft(newVal as Readonly<Settings>)
+export function getSettings(path: LeafSettingsPath) {
+  return get(settings, path)
+}
+
+/**
+ * pick
+ */
+export function pickSettings(
+  source: PartialDeep<Settings>,
+  paths: LeafSettingsPath[],
+  omit: LeafSettingsPath[] = [],
+) {
+  const pickedSettings: PartialDeep<Settings> = {}
+  const pickedPaths = paths.filter(
+    (p) => allowedLeafSettingsPaths.includes(p) && !omit.includes(p) && !isNil(get(source, p)),
+  )
+  pickedPaths.forEach((p) => {
+    const v = get(source, p)
+    set(pickedSettings, p, v)
+  })
+  return { pickedPaths, pickedSettings }
 }
 
 /**
  * update & persist
  */
-export function updateSettings(c: Partial<Settings>) {
-  Object.assign(settings, c)
+export function updateSettings(payload: PartialDeep<Settings>) {
+  const { pickedPaths } = pickSettings(payload, allowedLeafSettingsPaths)
+  for (const p of pickedPaths) {
+    const v = get(payload, p)
+    set(settings, p, v)
+  }
 }
 
 /**
@@ -257,9 +423,35 @@ export function resetSettings() {
 }
 
 /**
+ * 便于操作 inner array
+ */
+
+export type SettingsInnerArrayItem<P extends ListSettingsPath> = Get<Settings, P>[number]
+
+export function getSettingsInnerArray<P extends ListSettingsPath>(path: P) {
+  return get(settings, path) as SettingsInnerArrayItem<P>[]
+}
+export function setSettingsInnerArray<P extends ListSettingsPath>(
+  path: P,
+  value: SettingsInnerArrayItem<P>[],
+) {
+  set(settings, path, value)
+}
+export function updateSettingsInnerArray<P extends ListSettingsPath>(
+  path: P,
+  { add, remove }: { add?: SettingsInnerArrayItem<P>[]; remove?: SettingsInnerArrayItem<P>[] },
+) {
+  const arr = getSettingsInnerArray(path)
+  const s = new Set(arr)
+  for (const x of add ?? []) s.add(x)
+  for (const x of remove ?? []) s.delete(x)
+  setSettingsInnerArray(path, Array.from(s))
+}
+
+/**
  * load on init
  */
-await load()
+await loadAndSetup()
 
 /**
  * access_key expire check

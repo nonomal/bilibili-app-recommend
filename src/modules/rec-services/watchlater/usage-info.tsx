@@ -5,20 +5,22 @@ import {
   SwitchSettingItem,
 } from '$components/ModalSettings/setting-item'
 import { useOnRefreshContext } from '$components/RecGrid/useRefresh'
+import { IconForAsc, IconForDesc } from '$modules/icon'
 import { useSettingsSnapshot } from '$modules/settings'
-import { toast } from '$utility/toast'
+import toast from '$utility/toast'
 import { Space, Tag } from 'antd'
 import { delay } from 'es-toolkit'
 import { ShuffleSettingsItemFor } from '../_shared'
 
+type TagColor = ComponentProps<typeof Tag>['color']
+
 export function WatchLaterUsageInfo({ total }: { total: number }) {
   // 2023.12: B站的稍后再看上限提升到1000了
   // 所有这里就不管数量喽
-  type TagColor = ComponentProps<typeof Tag>['color']
   const color: TagColor = 'success'
   const title = `共 ${total} 个视频`
 
-  const { shuffleForWatchLater, addSeparatorForWatchLater, watchlaterNormalOrderSortByAddAtAsc } =
+  const { watchlaterUseShuffle, watchlaterAddSeparator, watchlaterNormalOrderSortByAddAtAsc } =
     useSettingsSnapshot()
   const onRefresh = useOnRefreshContext()
 
@@ -28,11 +30,11 @@ export function WatchLaterUsageInfo({ total }: { total: number }) {
       await delay(100)
       onRefresh?.()
     })()
-  }, [shuffleForWatchLater, addSeparatorForWatchLater, watchlaterNormalOrderSortByAddAtAsc])
+  }, [watchlaterUseShuffle, watchlaterAddSeparator, watchlaterNormalOrderSortByAddAtAsc])
 
   const switchDisplay = (
     <SwitchSettingItem
-      configKey={'shuffleForWatchLater'}
+      configPath={'watchlaterUseShuffle'}
       checkedChildren='随机顺序: 开'
       unCheckedChildren='随机顺序: 关'
       tooltip={<>随机顺序不包括近期添加的视频</>}
@@ -40,7 +42,7 @@ export function WatchLaterUsageInfo({ total }: { total: number }) {
   )
   const checkboxDisplay = (
     <CheckboxSettingItem
-      configKey={'shuffleForWatchLater'}
+      configPath={'watchlaterUseShuffle'}
       label='随机顺序'
       tooltip={
         <>
@@ -52,8 +54,13 @@ export function WatchLaterUsageInfo({ total }: { total: number }) {
   )
   const btnDisplay = (
     <ShuffleSettingsItemFor
-      configKey='shuffleForWatchLater'
-      tooltip='随机顺序不包括近期添加的稍后再看'
+      configPath='watchlaterUseShuffle'
+      tooltip={
+        <>
+          随机顺序不包括近期添加的稍后再看 <br />
+          近期: 最近48小时内
+        </>
+      }
     />
   )
 
@@ -78,9 +85,9 @@ export function WatchLaterUsageInfo({ total }: { total: number }) {
       {/* {checkboxDisplay} */}
       {btnDisplay}
 
-      {!shuffleForWatchLater && (
+      {!watchlaterUseShuffle && (
         <ButtonSettingItem
-          configKey='watchlaterNormalOrderSortByAddAtAsc'
+          configPath='watchlaterNormalOrderSortByAddAtAsc'
           tooltip={
             <>
               最近添加: 按添加时间倒序 <br />
@@ -89,13 +96,13 @@ export function WatchLaterUsageInfo({ total }: { total: number }) {
           }
           checkedChildren={
             <>
-              <IconTablerSortAscending2 className='mr-1px' {...size(18)} />
+              <IconForAsc {...size(18)} />
               最早添加
             </>
           }
           unCheckedChildren={
             <>
-              <IconTablerSortDescending2 className='mr-1px' {...size(18)} />
+              <IconForDesc {...size(18)} />
               最近添加
             </>
           }

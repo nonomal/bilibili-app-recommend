@@ -1,31 +1,39 @@
 import { ButtonSettingItem } from '$components/ModalSettings/setting-item'
-import type { BooleanSettingsKey } from '$modules/settings'
-import type { ComponentProps } from 'react'
-import CuidaShuffleOutline from '~icons/cuida/shuffle-outline'
+import { IconForDefaultOrder, IconForShuffle } from '$modules/icon'
+import type { BooleanSettingsPath } from '$modules/settings'
+import type { ComponentProps, CSSProperties } from 'react'
 
 export function ShuffleSettingsItemFor({
-  configKey,
+  configPath,
   ...rest
-}: { configKey: BooleanSettingsKey } & Omit<
+}: { configPath: BooleanSettingsPath } & Omit<
   ComponentProps<typeof ButtonSettingItem>,
-  'configKey' | 'checkedChildren' | 'unCheckedChildren'
+  'configPath' | 'checkedChildren' | 'unCheckedChildren'
 >) {
   return (
     <ButtonSettingItem
       {...rest}
-      configKey={configKey}
+      configPath={configPath}
       checkedChildren={
         <>
-          <CuidaShuffleOutline {...size(18)} className='mr-2px' />
+          <IconForShuffle {...size(18)} />
           随机顺序
         </>
       }
       unCheckedChildren={
         <>
-          <IconMdiShuffleDisabled {...size(18)} className='mr-2px position-relative top-[-1px]' />
+          <IconForDefaultOrder {...size(18)} className='position-relative top-[-1px]' />
           默认顺序
         </>
       }
     />
   )
+}
+
+export const dropdownMenuStyle: CSSProperties = {
+  overscrollBehavior: 'contain',
+  maxHeight: '60vh',
+  overflowY: 'scroll',
+  scrollbarWidth: 'thin',
+  paddingRight: '12px',
 }

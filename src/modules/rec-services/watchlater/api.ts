@@ -1,7 +1,7 @@
-import { APP_NAME } from '$common'
+import { appWarn } from '$common'
 import { encWbi } from '$modules/bilibili/risk-control'
 import { isWebApiSuccess, request } from '$request'
-import type { WatchlaterItem, WatchlaterJson } from './api.d'
+import type { WatchlaterItem, WatchlaterJson } from './types'
 
 /**
  * 一次性获取所有「稍后再看」
@@ -25,7 +25,7 @@ export async function getWatchlaterItemFrom(startKey = '', asc = false) {
 
   const json = res.data as WatchlaterJson
   if (!isWebApiSuccess(json)) {
-    console.warn(`[${APP_NAME}] getAllWatchlaterItemsV2 error %s, fulljson %o`, json.message, json)
+    appWarn('getAllWatchlaterItemsV2 error %s, fulljson %o', json.message, json)
     return { err: json.message }
   }
 

@@ -1,14 +1,34 @@
+import { inlineFlexVerticalCenterStyle } from '$common/emotion-css'
 import { CheckboxSettingItem } from '$components/ModalSettings/setting-item'
 import { useSortedTabKeys } from '$components/RecHeader/tab'
 import { TabConfig, TabIcon } from '$components/RecHeader/tab-config'
 import { ETab, TabKeys } from '$components/RecHeader/tab-enum'
 import { HelpInfo } from '$components/_base/HelpInfo'
 import { AntdTooltip } from '$components/_base/antd-custom'
+import { bgLv2Value, bgLv3Value } from '$components/css-vars'
 import { EAppApiDevice } from '$define/index.shared'
-import { useIsDarkMode } from '$modules/dark-mode'
+import { getUserNickname } from '$modules/bilibili/user/nickname'
 import { IconPark } from '$modules/icon/icon-park'
-import { updateSettings, useSettingsSnapshot } from '$modules/settings'
-import { AntdMessage } from '$utility'
+import { FollowGroupMergeTimelineService } from '$modules/rec-services/dynamic-feed/group/merge-timeline-service'
+import type { FollowGroup } from '$modules/rec-services/dynamic-feed/group/types/groups'
+import {
+  IconForGroup,
+  IconForUp,
+  formatFollowGroupUrl,
+  formatSpaceUrl,
+} from '$modules/rec-services/dynamic-feed/shared'
+import {
+  SELECTED_KEY_PREFIX_GROUP,
+  SELECTED_KEY_PREFIX_UP,
+  dfStore,
+} from '$modules/rec-services/dynamic-feed/store'
+import {
+  settings,
+  updateSettings,
+  updateSettingsInnerArray,
+  useSettingsSnapshot,
+} from '$modules/settings'
+import { antMessage } from '$utility/antd'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core'
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
@@ -19,12 +39,15 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Checkbox, Col, Radio, Space } from 'antd'
+import { Checkbox, Col, Collapse, Empty, Radio, Space } from 'antd'
+import { useSnapshot } from 'valtio'
+import { TagItemDisplay } from '../EditableListSettingItem'
 import styles from '../index.module.scss'
+import { explainForFlag } from '../index.shared'
 import { ResetPartialSettingsButton } from './_shared'
 
-export function TabPaneVideoSourceTabConfig() {
-  const { appApiDecice } = useSettingsSnapshot()
+export function TabPaneRecTabsConfig() {
+  const { appApiDecice, dynamicFeed } = useSettingsSnapshot()
   const sortedTabKeys = useSortedTabKeys()
 
   return (
@@ -48,7 +71,7 @@ export function TabPaneVideoSourceTabConfig() {
               勾选显示, 拖动排序
             </HelpInfo>
             <Col flex={1} />
-            <ResetPartialSettingsButton keys={['hidingTabKeys', 'customTabKeysOrder']} />
+            <ResetPartialSettingsButton paths={['hidingTabKeys', 'customTabKeysOrder']} />
           </div>
           <VideoSourceTabOrder />
         </div>
@@ -74,12 +97,12 @@ export function TabPaneVideoSourceTabConfig() {
               </div>
               <Space size={10}>
                 <CheckboxSettingItem
-                  configKey='shuffleForWatchLater'
+                  configPath='watchlaterUseShuffle'
                   label='随机顺序'
                   tooltip='不包括近期添加的「稍后再看」'
                 />
                 <CheckboxSettingItem
-                  configKey='addSeparatorForWatchLater'
+                  configPath='watchlaterAddSeparator'
                   label='添加分割线'
                   tooltip='添加「近期」「更早」分割线'
                   css={css`
@@ -101,12 +124,7 @@ export function TabPaneVideoSourceTabConfig() {
               </div>
               <Space size={10}>
                 <CheckboxSettingItem
-                  configKey='shuffleForFav'
-                  label='随机顺序'
-                  tooltip='随机收藏'
-                />
-                <CheckboxSettingItem
-                  configKey='addSeparatorForFav'
+                  configPath='fav.addSeparator'
                   label='添加分割线'
                   tooltip='顺序显示时, 按收藏夹添加分割线'
                   css={css`
@@ -126,23 +144,23 @@ export function TabPaneVideoSourceTabConfig() {
                 <TabIcon tabKey={ETab.DynamicFeed} mr={5} mt={-2} />
                 动态
               </div>
-              <Space size={10}>
+              <div className='flex flex-wrap  gap-x-10 gap-y-10'>
                 <CheckboxSettingItem
-                  configKey='enableFollowGroupFilterForDynamicFeed'
+                  configPath='dynamicFeed.followGroup.enabled'
                   label='启用分组筛选'
                   tooltip={
                     <>
-                      动态筛选里加入分组
-                      <br />
-                      目前基于全部动态 + 分组UP过滤, 速度较慢~
-                      <br />
-                      且貌似只能拉取最近一个月的动态数据
+                      动态 Tab 启用分组筛选 <br />
+                      当分组中 UP 较少(不超过 {FollowGroupMergeTimelineService.MAX_UPMID_COUNT}),
+                      会使用「拼接时间线」的形式, 速度较快, 可以获取所有动态; <br />
+                      否则基于全部动态 + 分组UP过滤, 速度可能巨慢,
+                      且貌似只能获取最近一个月的动态数据. <br />
                     </>
                   }
                 />
                 <CheckboxSettingItem
-                  configKey='showLiveInDynamicFeed'
-                  label='在动态里显示直播'
+                  configPath='dynamicFeed.showLive'
+                  label='在动态中显示直播'
                   tooltip={
                     <>
                       动态里显示正在直播的 UP
@@ -151,7 +169,36 @@ export function TabPaneVideoSourceTabConfig() {
                     </>
                   }
                 />
-              </Space>
+                <CheckboxSettingItem
+                  configPath='dynamicFeed.whenViewAll.enableHideSomeContents'
+                  label='「全部」动态过滤'
+                  tooltip={
+                    <>
+                      查看「全部」动态时 <br />
+                      {explainForFlag(
+                        '将添加右键菜单, 点击可添加到「全部」动态的过滤列表',
+                        '关闭此功能',
+                      )}
+                    </>
+                  }
+                />
+
+                {dynamicFeed.whenViewAll.enableHideSomeContents && (
+                  <Collapse
+                    size='small'
+                    css={css`
+                      width: 100%;
+                    `}
+                    items={[
+                      {
+                        key: '1',
+                        label: '在「全部」动态中隐藏 UP/分组 的动态',
+                        children: <DynamicFeedWhenViewAllHideIdsPanel />,
+                      },
+                    ]}
+                  />
+                )}
+              </div>
             </div>
 
             {/* recommend */}
@@ -225,7 +272,7 @@ function VideoSourceTabOrder({ className, style }: { className?: string; style?:
         value={currentShowingTabKeys}
         onChange={(newVal) => {
           if (!newVal.length) {
-            return AntdMessage.error('至少选择一项!')
+            return antMessage.error('至少选择一项!')
           }
           updateSettings({
             hidingTabKeys: TabKeys.filter((k) => !newVal.includes(k)),
@@ -260,8 +307,6 @@ function VideoSourceTabSortableItem({ id }: { id: ETab }) {
 
   const { label, desc } = TabConfig[id]
 
-  const dark = useIsDarkMode()
-
   return (
     <div
       key={id}
@@ -276,7 +321,7 @@ function VideoSourceTabSortableItem({ id }: { id: ETab }) {
 
         padding-left: 10px;
         padding-right: 6px;
-        border: 1px solid ${!dark ? '#ddd' : '#444'};
+        border: 1px solid ${bgLv2Value};
         border-radius: 6px;
         margin-top: 8px;
       `}
@@ -314,12 +359,135 @@ function VideoSourceTabSortableItem({ id }: { id: ETab }) {
           padding: 3px 5px;
           border-radius: 5px;
           &:hover {
-            background-color: ${!dark ? '#eee' : '#999'};
+            background-color: ${bgLv3Value};
           }
         `}
       >
         <IconPark name='Drag' size={18} />
       </div>
     </div>
+  )
+}
+
+function DynamicFeedWhenViewAllHideIdsPanel() {
+  const { hideIds } = useSnapshot(settings.dynamicFeed.whenViewAll)
+
+  const onDelete = useMemoizedFn((mid: string) => {
+    updateSettingsInnerArray('dynamicFeed.whenViewAll.hideIds', { remove: [mid] })
+  })
+
+  const { followGroups } = useSnapshot(dfStore)
+  useMount(() => {
+    dfStore.updateFollowGroups()
+  })
+
+  const empty = !hideIds.length
+  if (empty) {
+    return (
+      <div className='flex items-center justify-center'>
+        <Empty />
+      </div>
+    )
+  }
+
+  return (
+    <div className='flex flex-wrap gap-10 max-h-250px overflow-y-scroll'>
+      {hideIds.map((tag) => {
+        return (
+          <TagItemDisplay
+            tag={tag}
+            onDelete={onDelete}
+            renderTag={(t) => (
+              <DynamicFeedWhenViewAllHideIdTag tag={t} followGroups={followGroups} />
+            )}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+function DynamicFeedWhenViewAllHideIdTag({
+  tag,
+  followGroups,
+}: {
+  tag: string
+  followGroups?: FollowGroup[]
+}) {
+  let mid: string | undefined
+  let followGroupId: string | undefined
+  let invalid = false
+  if (tag.startsWith(SELECTED_KEY_PREFIX_UP)) {
+    mid = tag.slice(SELECTED_KEY_PREFIX_UP.length)
+  } else if (tag.startsWith(SELECTED_KEY_PREFIX_GROUP)) {
+    followGroupId = tag.slice(SELECTED_KEY_PREFIX_GROUP.length)
+  } else {
+    invalid = true
+  }
+
+  // mid -> nickname
+  const [upNickname, setUpNickname] = useState<string | undefined>(undefined)
+  useMount(async () => {
+    if (!mid) return
+    const nickname = await getUserNickname(mid)
+    if (nickname) setUpNickname(nickname)
+  })
+
+  // followGroupId -> name
+  const [followGroupName, setFollowGroupName] = useState<string | undefined>(undefined)
+  useMount(async () => {
+    if (!followGroupId) return
+    const groupName = followGroups?.find((g) => g.tagid.toString() === followGroupId)?.name
+    if (groupName) setFollowGroupName(groupName)
+  })
+
+  const label = useMemo(
+    () => (mid ? upNickname || mid : followGroupId ? followGroupName || followGroupId : '无效数据'),
+    [mid, upNickname, followGroupId, followGroupName],
+  )
+
+  const tooltip = useMemo(
+    () => (mid ? `mid: ${mid}` : followGroupId ? `分组: ${followGroupId}` : `Tag: ${tag}`),
+    [mid, followGroupId, tag],
+  )
+
+  const icon = useMemo(
+    () =>
+      mid ? (
+        <IconForUp {...size(12)} className='mr-2' />
+      ) : followGroupId ? (
+        <IconForGroup {...size(16)} className='mr-2' />
+      ) : undefined,
+    [mid, followGroupId],
+  )
+
+  const href = useMemo(
+    () =>
+      mid ? formatSpaceUrl(mid) : followGroupId ? formatFollowGroupUrl(followGroupId) : undefined,
+    [mid, followGroupId],
+  )
+
+  return (
+    <>
+      <AntdTooltip title={tooltip}>
+        <span
+          css={[
+            inlineFlexVerticalCenterStyle,
+            css`
+              cursor: ${mid ? 'pointer' : 'edit'};
+            `,
+          ]}
+        >
+          {icon}
+          {href ? (
+            <a href={href} target='_blank'>
+              {label}
+            </a>
+          ) : (
+            label
+          )}
+        </span>
+      </AntdTooltip>
+    </>
   )
 }

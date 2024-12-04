@@ -1,5 +1,6 @@
+import { appUsingFont } from '$common/css-vars-export.module.scss'
 import { useIsDarkMode } from '$modules/dark-mode'
-import { UseApp } from '$utility/antd-static'
+import { UseApp } from '$utility/antd'
 import { StyleProvider, type StyleProviderProps } from '@ant-design/cssinjs'
 import { cache as emotionCssDefaultCache } from '@emotion/css'
 import { CacheProvider, type EmotionCache } from '@emotion/react'
@@ -11,10 +12,6 @@ import { useColorPrimaryHex } from './ModalSettings/theme.shared'
 
 // https://github.com/emotion-js/emotion/issues/1105
 emotionCssDefaultCache.compat = true
-
-// bilibili.com default: PingFang SC,HarmonyOS_Regular,Helvetica Neue,Microsoft YaHei,sans-serif
-export const USING_FONT_FAMILY =
-  'HarmonyOS_Regular,PingFang SC,Helvetica Neue,Microsoft YaHei,sans-serif'
 
 function compose(...fns: Array<(c: ReactNode) => ReactNode>) {
   return function (c: ReactNode) {
@@ -57,7 +54,7 @@ export function AntdApp({
             colorPrimary,
             colorBgSpotlight: colorPrimary, // tooltip bg
             zIndexPopupBase: 11000, // base-modal 10002
-            fontFamily: USING_FONT_FAMILY,
+            fontFamily: appUsingFont,
           },
           components: {
             Notification: {
