@@ -1,3 +1,4 @@
+import { APP_CLS_TAB_BAR } from '$common'
 import type { RecItemTypeOrSeparator } from '$define'
 
 export interface IService {
@@ -6,7 +7,7 @@ export interface IService {
   usageInfo?: ReactNode
 }
 
-export class QueueStrategy<T extends RecItemTypeOrSeparator = RecItemTypeOrSeparator> {
+export class QueueStrategy<T = RecItemTypeOrSeparator> {
   // full-list = returnQueue + bufferQueue + more
   private returnQueue: T[] = []
   bufferQueue: T[] = []
@@ -20,17 +21,23 @@ export class QueueStrategy<T extends RecItemTypeOrSeparator = RecItemTypeOrSepar
     this.ps = ps
   }
 
-  sliceFromQueue(page = 1) {
+  sliceCountFromQueue(count: number) {
     if (this.bufferQueue.length) {
-      const sliced = this.bufferQueue.slice(0, this.ps * page)
-      this.bufferQueue = this.bufferQueue.slice(this.ps * page)
-      return this.doReturnItems(sliced)
+      const sliced = this.bufferQueue.slice(0, count) // sliced
+      this.bufferQueue = this.bufferQueue.slice(count) // rest
+      return this.doReturnItems(sliced) ?? []
+    } else {
+      return []
     }
+  }
+
+  sliceFromQueue(page = 1) {
+    return this.sliceCountFromQueue(this.ps * page)
   }
 
   // add to returnQueue
   doReturnItems(items: T[] | undefined) {
-    this.returnQueue = [...this.returnQueue, ...(items || [])]
+    this.returnQueue = [...this.returnQueue, ...(items ?? [])]
     return items
   }
 
@@ -44,7 +51,7 @@ export class QueueStrategy<T extends RecItemTypeOrSeparator = RecItemTypeOrSepar
 export function usePopupContainer<T extends HTMLElement = HTMLDivElement>() {
   const ref = useRef<T>(null)
   const getPopupContainer = useCallback(() => {
-    return ref.current?.closest<T>('.area-header') || document.body
+    return ref.current?.closest<T>('.' + APP_CLS_TAB_BAR) || document.body
   }, [])
   return { ref, getPopupContainer }
 }

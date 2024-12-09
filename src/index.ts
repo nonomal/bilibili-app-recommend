@@ -10,15 +10,15 @@
  *     不见满街漂亮妹，哪个归得程序员？
  */
 
+// polyfills
+// import 'core-js/proposals/explicit-resource-management' // useful, but current not used
+
 // styles
 import '$common/global.scss'
-import '@icon-park/react/styles/index.css'
-
 // css modules 与 emtion 混用, 先 import 作为 base 的 css modules
 import '$components/ModalSettings/index.module.scss'
 import '$components/VideoCard/index.module.scss'
 import '$components/video-grid.module.scss'
-
 import 'virtual:uno.css'
 
 // dayjs setup

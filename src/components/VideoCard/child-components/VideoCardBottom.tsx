@@ -7,15 +7,18 @@ import { C, flexCenterStyle } from '$common/emotion-css'
 import { colorPrimaryValue } from '$components/css-vars'
 import { isApp, isLive, isRanking, type RecItemType } from '$define'
 import { EApiType, EAppApiDevice } from '$define/index.shared'
-import { LiveIcon } from '$modules/icon'
+import { IconForLive } from '$modules/icon'
+import { formatSpaceUrl } from '$modules/rec-services/dynamic-feed/shared'
 import { ELiveStatus } from '$modules/rec-services/live/live-enum'
-import { useSettingsSnapshot } from '$modules/settings'
+import { settings } from '$modules/settings'
 import { getAvatarSrc } from '$utility/image'
-import type { TheCssType } from '$utility/type'
+import type { CssProp } from '$utility/type'
+import { css } from '@emotion/react'
 import { Avatar } from 'antd'
 import { size } from 'polished'
 import { type MouseEventHandler } from 'react'
 import { Case, Switch } from 'react-if'
+import { useSnapshot } from 'valtio'
 import type { IVideoCardData } from '../process/normalize'
 import { DESC_SEPARATOR } from '../process/normalize'
 import { useLinkTarget } from '../use/useOpenRelated'
@@ -80,12 +83,14 @@ export function VideoCardBottom({
   item,
   cardData,
   handleVideoLinkClick,
+  className,
 }: {
   item: RecItemType
   cardData: IVideoCardData
   handleVideoLinkClick?: MouseEventHandler
+  className?: string
 }) {
-  const { styleUseCardBorder, styleUseCardBorderOnlyOnHover } = useSettingsSnapshot()
+  const { useBorder } = useSnapshot(settings.style.videoCard)
   const target = useLinkTarget()
 
   const {
@@ -115,11 +120,11 @@ export function VideoCardBottom({
   const isNormalVideo = goto === 'av'
 
   // fallback to href
-  const authorHref = authorMid ? `https://space.bilibili.com/${authorMid}` : href
+  const authorHref = authorMid ? formatSpaceUrl(authorMid) : href
 
   const streaming = item.api === EApiType.Live && item.live_status === ELiveStatus.Streaming
 
-  const avatarExtraCss: TheCssType = [
+  const avatarExtraCss: CssProp = [
     css`
       ${flexCenterStyle}
       padding: 1px;
@@ -154,7 +159,7 @@ export function VideoCardBottom({
   }
 
   /**
-   * https://github.com/magicdawn/bilibili-app-recommend/issues/110
+   * https://github.com/magicdawn/bilibili-gate/issues/110
    */
   const ENABLE_HIDE_AVATAR = false
   let hideAvatar = false
@@ -167,9 +172,10 @@ export function VideoCardBottom({
    */
   return (
     <div
+      className={className}
       css={css`
         margin-top: 15px;
-        margin-bottom: ${styleUseCardBorder ? 10 : 5}px;
+        margin-bottom: ${useBorder ? 10 : 5}px;
         padding-inline: 5px;
         display: flex;
         column-gap: 5px;
@@ -186,7 +192,7 @@ export function VideoCardBottom({
               <Avatar>{authorName?.[0] || appBadgeDesc?.[0] || ''}</Avatar>
             )}
             {streaming && (
-              <LiveIcon
+              <IconForLive
                 {...size(12)}
                 active
                 css={css`

@@ -1,10 +1,13 @@
 import type { OnRefresh } from '$components/RecGrid/useRefresh'
+import { favStore } from '$modules/rec-services/fav/store'
 import { isHotTabUsingShuffle } from '$modules/rec-services/hot'
 import { useSettingsSnapshot } from '$modules/settings'
 import { shouldDisableShortcut } from '$utility/dom'
+import { css } from '@emotion/react'
 import { Button } from 'antd'
 import { useAnimate } from 'framer-motion'
 import type { MouseEvent, MouseEventHandler } from 'react'
+import { useSnapshot } from 'valtio'
 import { useCurrentUsingTab } from './tab'
 import { ETab } from './tab-enum'
 
@@ -46,16 +49,17 @@ export const RefreshButton = forwardRef<RefreshButtonActions, RefreshButtonProps
   )
 
   const tab = useCurrentUsingTab()
-  const { shuffleForFav, shuffleForWatchLater, shuffleForPopularWeekly } = useSettingsSnapshot()
-
+  const { watchlaterUseShuffle, popularWeeklyUseShuffle } = useSettingsSnapshot()
+  const { usingShuffle: favUsingShuffle } = useSnapshot(favStore)
   const text =
-    tab === ETab.DynamicFeed ||
-    (tab === ETab.Watchlater && !shuffleForWatchLater) ||
-    (tab === ETab.Fav && !shuffleForFav) ||
-    (tab === ETab.Hot && !isHotTabUsingShuffle(shuffleForPopularWeekly)) ||
-    tab === ETab.Live
-      ? '刷新'
-      : '换一换'
+    tab === ETab.RecommendApp ||
+    tab === ETab.RecommendPc ||
+    tab === ETab.KeepFollowOnly ||
+    (tab === ETab.Watchlater && watchlaterUseShuffle) ||
+    (tab === ETab.Fav && favUsingShuffle) ||
+    (tab === ETab.Hot && isHotTabUsingShuffle(popularWeeklyUseShuffle))
+      ? '换一换'
+      : '刷新'
 
   const [scope, animate] = useAnimate()
 

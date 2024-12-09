@@ -1,31 +1,37 @@
 import { __PROD__ } from '$common'
 import { BaseModal, BaseModalStyle, ModalClose } from '$components/_base/BaseModal'
-import { ConfigIcon } from '$modules/icon'
-import type { BooleanSettingsKey } from '$modules/settings'
+import { useHotkeyForToggleEvolvedDarkMode } from '$modules/dark-mode'
+import { IconForConfig } from '$modules/icon'
+import type { BooleanSettingsPath } from '$modules/settings'
 import { settings } from '$modules/settings'
-import { AntdMessage, shouldDisableShortcut } from '$utility'
+import { antMessage } from '$utility/antd'
+import { shouldDisableShortcut } from '$utility/dom'
+import { css } from '@emotion/react'
 import { Tabs } from 'antd'
+import { get, set } from 'es-toolkit/compat'
 import { proxy, useSnapshot } from 'valtio'
 import styles from './index.module.scss'
 import { TabPaneAdvance } from './tab-panes/pane-advance'
 import { TabPaneBasic } from './tab-panes/pane-basic'
 import { TabPaneCustomUI, useHotkeyForConfigBorder } from './tab-panes/pane-custom-ui'
 import { TabPaneFilter } from './tab-panes/pane-filter'
-import { TabPaneVideoSourceTabConfig } from './tab-panes/pane-video-source-tab-config'
+import { TabPaneRecTabsConfig } from './tab-panes/pane-rec-tab-config'
 import { ThemesSelect } from './theme'
 
 function useHotkeyForConfig(
   hotkey: string | string[],
-  configKey: BooleanSettingsKey,
+  configPath: BooleanSettingsPath,
   label: string,
 ) {
   return useKeyPress(
     hotkey,
     (e) => {
       if (shouldDisableShortcut()) return
-      settings[configKey] = !settings[configKey]
-      const isCancel = !settings[configKey]
-      AntdMessage.success(`已${isCancel ? '禁用' : '启用'}「${label}」`)
+      const _get = () => !!get(settings, configPath)
+      const _set = (val: boolean) => set(settings, configPath, val)
+      _set(!_get())
+      const isCancel = !_get()
+      antMessage.success(`已${isCancel ? '禁用' : '启用'}「${label}」`)
     },
     { exactMatch: true },
   )
@@ -52,6 +58,7 @@ export function ModalSettingsHotkey() {
   useHotkeyForConfig(['shift.m'], 'autoPreviewWhenHover', '鼠标悬浮后自动开始预览')
   useHotkeyForConfig(['shift.c'], 'useNarrowMode', '居中模式')
   useHotkeyForConfigBorder()
+  useHotkeyForToggleEvolvedDarkMode()
   return null
 }
 
@@ -73,7 +80,7 @@ export function ModalSettings({ show, onHide }: { show: boolean; onHide: () => v
     >
       <div css={BaseModalStyle.modalHeader}>
         <div css={BaseModalStyle.modalTitle}>
-          <ConfigIcon className='size-26 mr-4 mt--2' />
+          <IconForConfig className='size-26 mr-4 mt--2' />
           设置
         </div>
 
@@ -139,7 +146,7 @@ export function ModalSettings({ show, onHide }: { show: boolean; onHide: () => v
             {
               label: 'Tab 设置',
               key: TabPaneKey.VideoSourceTabConfig,
-              children: <TabPaneVideoSourceTabConfig />,
+              children: <TabPaneRecTabsConfig />,
             },
             {
               label: '高级设置',

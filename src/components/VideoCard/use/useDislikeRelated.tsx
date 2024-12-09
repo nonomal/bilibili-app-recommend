@@ -4,13 +4,14 @@
 
 import { showModalDislike } from '$components/ModalDislike'
 import { isApp, type RecItemType } from '$define'
-import { DislikeIcon } from '$modules/icon'
-import { AntdMessage, toast } from '$utility'
+import { IconForDislike } from '$modules/icon'
+import { antMessage } from '$utility/antd'
+import toast from '$utility/toast'
 import { size } from 'polished'
 import type { MouseEvent } from 'react'
 import { VideoCardActionButton } from '../child-components/VideoCardActions'
 
-export const dislikeIcon = <DislikeIcon {...size(16)} />
+export const dislikeIcon = <IconForDislike {...size(16)} />
 
 export function useDislikeRelated({
   item,
@@ -22,7 +23,7 @@ export function useDislikeRelated({
   actionButtonVisible: boolean
 }) {
   // show icon even accessKey not found
-  // https://greasyfork.org/zh-CN/scripts/443530-bilibili-app-recommend/discussions/244405
+  // https://greasyfork.org/zh-CN/scripts/443530-bilibili-gate/discussions/244405
 
   const hasDislikeEntry = isApp(item) && !!item.three_point?.dislike_reasons?.length
 
@@ -32,7 +33,7 @@ export function useDislikeRelated({
 
     if (!hasDislikeEntry) {
       if (item.api !== 'app') {
-        return AntdMessage.error('当前视频不支持提交「我不想看」')
+        return antMessage.error('当前视频不支持提交「我不想看」')
       }
       return
     }

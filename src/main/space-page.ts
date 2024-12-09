@@ -1,4 +1,5 @@
-import { tryAction } from '$utility'
+import { APP_NAME } from '$common'
+import { tryAction } from '$utility/dom'
 
 export async function initSpacePage() {
   addDynEntry()
@@ -12,7 +13,7 @@ async function addDynEntry() {
     href="https://www.bilibili.com/?dyn-mid=${mid}"
     target="_blank"
     class="h-f-btn"
-    style="width: auto; padding-inline: 15px;">BAR-查看动态</a>`
+    style="width: auto; padding-inline: 15px;">${APP_NAME} 动态</a>`
 
   await tryAction(
     '.h-action',

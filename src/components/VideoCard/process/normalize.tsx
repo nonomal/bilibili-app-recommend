@@ -1,4 +1,4 @@
-import { APP_NAME } from '$common'
+import { appWarn } from '$common'
 import { AntdTooltip } from '$components/_base/antd-custom'
 import { colorPrimaryValue } from '$components/css-vars'
 import {
@@ -24,14 +24,20 @@ import {
   type WatchLaterItemExtend,
 } from '$define'
 import type { EApiType } from '$define/index.shared'
-import { IconPark } from '$modules/icon/icon-park'
-import type { FavItemExtend } from '$modules/rec-services/fav/define'
+import { styled } from '$libs'
+import { isFavFolderPrivate } from '$modules/rec-services/fav/fav-util'
+import type { FavItemExtend } from '$modules/rec-services/fav/types'
+import {
+  IconForCollection,
+  IconForPrivateFolder,
+  IconForPublicFolder,
+} from '$modules/rec-services/fav/usage-info'
 import {
   isBangumiRankingItem,
   isCinemaRankingItem,
 } from '$modules/rec-services/hot/ranking/category'
 import { ELiveStatus } from '$modules/rec-services/live/live-enum'
-import { toHttps } from '$utility'
+import { toHttps } from '$utility/url'
 import {
   formatDuration,
   formatTimeStamp,
@@ -161,14 +167,14 @@ function apiAndroidAppAdapter(item: AndroidAppRecItemExtend): IVideoCardData {
       return item.uri
     }
 
-    // more see https://github.com/magicdawn/bilibili-app-recommend/issues/23#issuecomment-1533079590
+    // more see https://github.com/magicdawn/bilibili-gate/issues/23#issuecomment-1533079590
 
     if (item.goto === 'av') {
       return `/video/${bvid}/`
     }
 
     if (item.goto === 'bangumi') {
-      console.warn(`[${APP_NAME}]: bangumi uri should not starts with 'bilibili://': %s`, item.uri)
+      appWarn(`bangumi uri should not starts with 'bilibili://': %s`, item.uri)
       return item.uri
     }
 
@@ -265,14 +271,14 @@ function apiIpadAppAdapter(item: IpadAppRecItemExtend): IVideoCardData {
       return item.uri
     }
 
-    // more see https://github.com/magicdawn/bilibili-app-recommend/issues/23#issuecomment-1533079590
+    // more see https://github.com/magicdawn/bilibili-gate/issues/23#issuecomment-1533079590
 
     if (item.goto === 'av') {
       return `/video/${bvid}/`
     }
 
     if (item.goto === 'bangumi') {
-      console.warn(`[${APP_NAME}]: bangumi uri should not starts with 'bilibili://': %s`, item.uri)
+      appWarn(`bangumi uri should not starts with 'bilibili://': %s`, item.uri)
       return item.uri
     }
 
@@ -468,30 +474,51 @@ function apiWatchLaterAdapter(item: WatchLaterItemExtend): IVideoCardData {
   }
 }
 
+const fillWithColorPrimary = styled.createClass`
+  & path {
+    fill: ${colorPrimaryValue};
+  }
+`
+
 function apiFavAdapter(item: FavItemExtend): IVideoCardData {
+  const belongsToTitle = item.from === 'fav-folder' ? item.folder.title : item.collection.title
+
+  const iconInTitleStyle = {
+    display: 'inline-block',
+    verticalAlign: 'middle',
+    marginRight: 4,
+    marginTop: -2,
+  }
+  const iconInTitle =
+    item.from === 'fav-folder' ? (
+      isFavFolderPrivate(item.folder.attr) ? (
+        <IconForPrivateFolder
+          style={iconInTitleStyle}
+          {...size(15)}
+          className={fillWithColorPrimary}
+        />
+      ) : (
+        <IconForPublicFolder
+          style={iconInTitleStyle}
+          {...size(15)}
+          className={fillWithColorPrimary}
+        />
+      )
+    ) : (
+      <IconForCollection style={iconInTitleStyle} {...size(15)} className={fillWithColorPrimary} />
+    )
+
   return {
     // video
     avid: String(item.id),
     bvid: item.bvid,
     goto: 'av',
     href: `/video/${item.bvid}/`,
-    title: `【${item.folder.title}】· ${item.title}`,
+    title: `【${belongsToTitle}】· ${item.title}`,
     titleRender: (
       <>
-        【
-        <IconPark
-          name='Star'
-          size={16}
-          theme='two-tone'
-          fill={['currentColor', colorPrimaryValue]}
-          style={{
-            display: 'inline-block',
-            verticalAlign: 'middle',
-            marginRight: 4,
-            marginTop: -4,
-          }}
-        />
-        {item.folder.title}】· {item.title}
+        【{iconInTitle}
+        {belongsToTitle}】· {item.title}
       </>
     ),
     cover: item.cover,
@@ -499,7 +526,8 @@ function apiFavAdapter(item: FavItemExtend): IVideoCardData {
     pubdateDisplay: formatTimeStamp(item.pubtime),
     duration: item.duration,
     durationStr: formatDuration(item.duration),
-    recommendReason: `${formatTimeStamp(item.fav_time)} · 收藏`,
+    recommendReason:
+      item.from === 'fav-folder' ? `${formatTimeStamp(item.fav_time)} · 收藏` : undefined,
 
     // stat
     play: item.cnt_info.play,

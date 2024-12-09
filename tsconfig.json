@@ -10,9 +10,15 @@
       "$*": ["./src/*"]
     },
 
-    "target": "ES2022",
     "module": "ESNext",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable",
+      "ES2024.Promise", // Promise.withResolvers; Baseline 2024
+      "ESNext.Disposable" // DisposableStack; Stage 3; need polyfill
+    ],
     "useDefineForClassFields": true,
     "skipLibCheck": true,
 
@@ -24,6 +30,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "jsxImportSource": "@emotion/react",
+
+    //
+    "moduleDetection": "force",
 
     /* Linting */
     "strict": true,

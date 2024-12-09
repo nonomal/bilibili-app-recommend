@@ -1,8 +1,13 @@
 import { C } from '$common/emotion-css'
-import { initialSettings, updateSettings, type SettingsKey } from '$modules/settings'
-import type { TheCssType } from '$utility/type'
+import {
+  initialSettings,
+  pickSettings,
+  updateSettings,
+  type LeafSettingsPath,
+} from '$modules/settings'
+import type { CssProp } from '$utility/type'
+import { css } from '@emotion/react'
 import { Button, Popconfirm, Space } from 'antd'
-import { pick } from 'es-toolkit'
 import { size } from 'polished'
 import type { ComponentProps, ReactNode } from 'react'
 import type { Merge } from 'type-fest'
@@ -45,7 +50,7 @@ export function SettingsGroup({
   {
     children?: React.ReactNode
     title: ReactNode
-    titleCss?: TheCssType
+    titleCss?: CssProp
   }
 >) {
   return (
@@ -63,19 +68,20 @@ export function SettingsGroup({
   )
 }
 
-export function resetPartialSettings(keys: SettingsKey[]) {
-  updateSettings(structuredClone(pick(initialSettings, keys)))
+export function resetPartialSettings(paths: LeafSettingsPath[]) {
+  const { pickedSettings } = pickSettings(initialSettings, paths)
+  updateSettings(pickedSettings)
 }
 
 export function ResetPartialSettingsButton({
-  keys,
+  paths,
   className,
 }: {
-  keys: SettingsKey[]
+  paths: LeafSettingsPath[]
   className?: string
 }) {
   return (
-    <Popconfirm title={'确定重置下面的设置项?'} onConfirm={() => resetPartialSettings(keys)}>
+    <Popconfirm title={'确定重置下面的设置项?'} onConfirm={() => resetPartialSettings(paths)}>
       <Button
         className={className}
         css={css`

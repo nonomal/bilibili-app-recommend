@@ -6,8 +6,9 @@ import { colorPrimaryValue } from '$components/css-vars'
 import type { RecItemTypeOrSeparator } from '$define'
 import { styled } from '$libs'
 import { settings, useSettingsSnapshot } from '$modules/settings'
-import type { AntdMenuItemType } from '$utility/type'
+import type { AntMenuItem } from '$utility/antd'
 import { proxyWithGmStorage } from '$utility/valtio'
+import { css } from '@emotion/react'
 import { Button, Dropdown } from 'antd'
 import { size } from 'polished'
 import type { ReactNode } from 'react'
@@ -27,7 +28,7 @@ const ServiceMap = {
 // 是否是: 换一换
 export function isHotTabUsingShuffle(shuffleForPopularWeekly?: boolean) {
   const { subtab } = hotStore
-  shuffleForPopularWeekly ??= settings.shuffleForPopularWeekly
+  shuffleForPopularWeekly ??= settings.popularWeeklyUseShuffle
   const change = subtab === EHotSubTab.PopularWeekly && shuffleForPopularWeekly
   return change
 }
@@ -99,9 +100,9 @@ function HotUsageInfo({ children }: { children?: ReactNode }) {
   const { icon, label } = HotSubTabConfig[activeSubtab]
   const onRefresh = useOnRefreshContext()
   const { ref, getPopupContainer } = usePopupContainer<HTMLButtonElement>()
-  const { __internalHotSubUseTabBar } = useSettingsSnapshot()
+  const { __internalHotSubUseDropdown } = useSettingsSnapshot()
 
-  const menus: AntdMenuItemType[] = useMemo(
+  const menus: AntMenuItem[] = useMemo(
     () =>
       [EHotSubTab.PopularGeneral, EHotSubTab.PopularWeekly, EHotSubTab.Ranking]
         .map((subtab, index) => {
@@ -130,7 +131,7 @@ function HotUsageInfo({ children }: { children?: ReactNode }) {
                 // onRefresh?.(true) // 可以但没必要, 有 skeleton 有 Tab切换 的反馈
                 onRefresh?.()
               },
-            } satisfies AntdMenuItemType,
+            } satisfies AntMenuItem,
           ].filter(Boolean)
         })
         .flat(),
@@ -173,7 +174,8 @@ function HotUsageInfo({ children }: { children?: ReactNode }) {
                 <Button
                   css={groupedButtonCss}
                   icon={icon}
-                  type={active ? 'primary' : 'default'}
+                  variant={active ? 'solid' : 'outlined'}
+                  color={active ? 'primary' : 'default'}
                   onClick={() => {
                     if (subtab === hotStore.subtab) return
                     hotStore.subtab = subtab
@@ -193,9 +195,7 @@ function HotUsageInfo({ children }: { children?: ReactNode }) {
 
   return (
     <>
-      {/* {dropdownMenu} */}
-      {/* {tab} */}
-      {__internalHotSubUseTabBar ? tab : dropdownMenu}
+      {__internalHotSubUseDropdown ? dropdownMenu : tab}
       {children}
     </>
   )

@@ -12,6 +12,7 @@ import { AntdTooltip } from '$components/_base/antd-custom'
 import { $evolvedThemeColor } from '$header'
 import { IconAnimatedChecked } from '$modules/icon/animated-checked'
 import { updateSettings, useSettingsSnapshot } from '$modules/settings'
+import { css } from '@emotion/react'
 import { usePrevious } from 'ahooks'
 import { ColorPicker } from 'antd'
 import type { Color } from 'antd/es/color-picker'
@@ -49,9 +50,9 @@ export function ThemesSelect() {
             >
               {name}
               <HelpInfo
+                className='size-16px'
                 children={tooltip}
                 tooltipProps={{ color: 'rgba(0, 0, 0, 0.85)' }} // 默认使用 colorPrimary, 链接可能看不清
-                iconProps={{ name: 'Tips', size: 16 }}
               />
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px' }}>

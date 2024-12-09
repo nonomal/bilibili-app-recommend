@@ -1,9 +1,9 @@
-import { colorPrimaryValue } from '$components/css-vars'
+import { bgLv1Value, colorPrimaryValue } from '$components/css-vars'
 import type { PvideoData } from '$define'
-import { useIsDarkMode } from '$modules/dark-mode'
+import { css } from '@emotion/react'
 import { useMouse } from 'ahooks'
 import type { ComponentProps, ComponentPropsWithoutRef } from 'react'
-import { borderRadiusValue } from '../../css-vars'
+import { videoCardBorderRadiusValue } from '../../css-vars'
 import { previewCardWrapper } from '../index.module.scss'
 
 const S = {
@@ -15,13 +15,13 @@ const S = {
     bottom: 0;
     overflow: hidden;
 
-    /* see https://github.com/magicdawn/bilibili-app-recommend/issues/112 */
+    /* see https://github.com/magicdawn/bilibili-gate/issues/112 */
     /* useMouse 使用的是 document.addEventListener, 不用它响应 mousemove 事件 */
     pointer-events: none;
 
     // 配合进度条, 底部不需要圆角
-    border-top-left-radius: ${borderRadiusValue};
-    border-top-right-radius: ${borderRadiusValue};
+    border-top-left-radius: ${videoCardBorderRadiusValue};
+    border-top-right-radius: ${videoCardBorderRadiusValue};
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   `,
@@ -208,8 +208,7 @@ export function SimplePregressBar({
   progress,
   ...rest
 }: { progress: number } & ComponentProps<'div'>) {
-  const dark = useIsDarkMode()
-  const backgroundColor = dark ? '#333' : '#eee'
+  const backgroundColor = bgLv1Value
   return (
     <div
       {...rest}

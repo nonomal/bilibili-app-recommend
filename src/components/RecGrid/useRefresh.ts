@@ -4,10 +4,13 @@ import { useCurrentUsingTab } from '$components/RecHeader/tab'
 import { TabConfig } from '$components/RecHeader/tab-config'
 import { ETab, type EHotSubTab } from '$components/RecHeader/tab-enum'
 import type { RecItemTypeOrSeparator } from '$define'
-import { type DynamicFeedRecService } from '$modules/rec-services/dynamic-feed'
-import { getDfStoreFilterConfig } from '$modules/rec-services/dynamic-feed/store'
+import {
+  getDynamicFeedServiceConfig,
+  type DynamicFeedRecService,
+} from '$modules/rec-services/dynamic-feed'
+import { getFavServiceConfig, type FavRecService } from '$modules/rec-services/fav'
 import { hotStore } from '$modules/rec-services/hot'
-import { nextTick } from '$utility'
+import { nextTick } from '$utility/dom'
 import type { Debugger } from 'debug'
 import { isEqual } from 'radash'
 import { createContext } from 'react'
@@ -112,12 +115,28 @@ export function useRefresh({
     if (refreshing) {
       // same tab
       if (tab === refreshFor) {
-        // same tab but conditions changed
-        let s: DynamicFeedRecService
+        /**
+         * same tab but conditions changed
+         */
+        let s: DynamicFeedRecService | FavRecService
+
+        // dynamic-feed: conditions changed
         if (
           tab === ETab.DynamicFeed &&
           (s = serviceMap[ETab.DynamicFeed]) &&
-          !isEqual(s.filterConfig, getDfStoreFilterConfig())
+          !isEqual(s.config, getDynamicFeedServiceConfig())
+        ) {
+          debug(
+            'refresh(): [start] [refreshing] sametab(%s) but conditions change, abort existing',
+            tab,
+          )
+          refreshAbortController.abort()
+        }
+        // fav: conditions changed
+        else if (
+          tab === ETab.Fav &&
+          (s = serviceMap[ETab.Fav]) &&
+          !isEqual(s.config, getFavServiceConfig())
         ) {
           debug(
             'refresh(): [start] [refreshing] sametab(%s) but conditions change, abort existing',
@@ -211,8 +230,13 @@ export function useRefresh({
 
     const newServiceMap = { ...serviceMap }
     const recreateFor = (tab: ServiceMapKey) => {
-      // @ts-ignore
-      newServiceMap[tab] = createServiceMap[tab](options)
+      try {
+        // @ts-ignore
+        newServiceMap[tab] = createServiceMap[tab](options)
+      } catch (e) {
+        setError(e)
+        throw e
+      }
       serviceMapBox.set(newServiceMap)
     }
 

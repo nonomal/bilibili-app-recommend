@@ -1,7 +1,7 @@
 import { APP_NAME } from '$common'
 import {
+  buttonOpenCss,
   C,
-  flexCenterStyle,
   flexVerticalCenterStyle,
   iconOnlyRoundButtonCss,
 } from '$common/emotion-css'
@@ -10,20 +10,26 @@ import { CollapsePanel } from '$components/_base/CollapsePanel'
 import { HelpInfo } from '$components/_base/HelpInfo'
 import { AntdTooltip } from '$components/_base/antd-custom'
 import { borderColorValue } from '$components/css-vars'
-import { OpenExternalLinkIcon } from '$modules/icon'
+import { IconForOpenExternalLink } from '$modules/icon'
 import {
-  allowedSettingsKeys,
-  internalBooleanKeys,
+  allowedLeafSettingsPaths,
+  internalBooleanPaths,
   resetSettings,
   settings,
   updateSettings,
   useSettingsSnapshot,
+  type BooleanSettingsPath,
+  type Settings,
 } from '$modules/settings'
 import { exportSettings, importSettings } from '$modules/settings/file-backup'
-import { articleDraft, restoreOmitKeys } from '$modules/settings/index.shared'
-import { AntdMessage } from '$utility'
+import { articleDraft, restoreOmitPaths } from '$modules/settings/index.shared'
+import { antMessage } from '$utility/antd'
+import { getLeafPaths } from '$utility/object-paths'
+import { css } from '@emotion/react'
 import { Button, Popconfirm, Slider, Space } from 'antd'
-import { omit, pick, startCase } from 'es-toolkit'
+import { startCase } from 'es-toolkit'
+import { get, set } from 'es-toolkit/compat'
+import type { PartialDeep } from 'type-fest'
 import TablerFileExport from '~icons/tabler/file-export'
 import TablerFileImport from '~icons/tabler/file-import'
 import TablerRestore from '~icons/tabler/restore'
@@ -39,12 +45,18 @@ function onResetSettings() {
 
 async function onRestoreSettings() {
   const remoteSettings = await articleDraft.getData()
-  const pickedSettings = omit(pick(remoteSettings || {}, allowedSettingsKeys), restoreOmitKeys)
 
-  const len = Object.keys(pickedSettings).length
-  if (!len) {
-    return AntdMessage.error('备份不存在或没有有效的配置')
+  const pickedPaths = getLeafPaths(remoteSettings || {}).filter(
+    (p) => allowedLeafSettingsPaths.includes(p) && !restoreOmitPaths.includes(p),
+  )
+  if (!pickedPaths.length) {
+    return antMessage.error('备份不存在或没有有效的配置')
   }
+
+  const pickedSettings: PartialDeep<Settings> = {}
+  pickedPaths.forEach((p) => {
+    set(pickedSettings, p, get(remoteSettings, p))
+  })
 
   set_HAS_RESTORED_SETTINGS(true)
   updateSettings(pickedSettings)
@@ -91,7 +103,7 @@ export function TabPaneAdvance() {
       <SettingsGroup title='备份/恢复'>
         <div css={flexVerticalCenterStyle}>
           <CheckboxSettingItem
-            configKey='backupSettingsToArticleDraft'
+            configPath='backupSettingsToArticleDraft'
             label='备份设置到专栏草稿箱中'
             tooltip={`专栏 - 草稿箱 - ${APP_NAME}`}
           />
@@ -105,7 +117,7 @@ export function TabPaneAdvance() {
             href='https://member.bilibili.com/platform/upload/text/draft'
             target='_blank'
           >
-            <OpenExternalLinkIcon css={[C.size(16), C.mr(4)]} />
+            <IconForOpenExternalLink css={[C.size(16), C.mr(4)]} />
             去草稿箱浏览
           </a>
         </div>
@@ -130,7 +142,7 @@ export function TabPaneAdvance() {
           <>
             预览
             <ResetPartialSettingsButton
-              keys={['autoPreviewUpdateInterval', 'autoPreviewUseContinuousProgress']}
+              paths={['autoPreviewUpdateInterval', 'autoPreviewUseContinuousProgress']}
             />
           </>
         }
@@ -149,7 +161,7 @@ export function TabPaneAdvance() {
         </div>
 
         <CheckboxSettingItem
-          configKey={'autoPreviewUseContinuousProgress'}
+          configPath={'autoPreviewUseContinuousProgress'}
           label='自动预览: 使用连续式进度条'
           tooltip={
             <>
@@ -171,20 +183,9 @@ export function TabPaneAdvance() {
             <Button
               onClick={() => setInternalKeysExpanded((v) => !v)}
               className='ml-10px'
-              css={[
-                iconOnlyRoundButtonCss,
-                flexCenterStyle,
-                internalKeysExpanded &&
-                  css`
-                    &.ant-btn-default.ant-btn-outlined {
-                      color: var(--ant-button-default-active-color);
-                      border-color: var(--ant-button-default-active-border-color);
-                      background: var(--ant-button-default-active-bg);
-                    }
-                  `,
-              ]}
+              css={[iconOnlyRoundButtonCss, internalKeysExpanded && buttonOpenCss]}
             >
-              <IconIconParkOutlineDownC
+              <IconParkOutlineDownC
                 {...size(16)}
                 css={css`
                   transition: transform 0.3s ease;
@@ -206,12 +207,12 @@ export function TabPaneAdvance() {
               column-gap: 20px;
             `}
           >
-            <ResetPartialSettingsButton keys={internalBooleanKeys} />
+            <ResetPartialSettingsButton paths={internalBooleanPaths} />
             <Space size={[20, 10]} wrap>
-              {internalBooleanKeys.map((k) => (
+              {internalBooleanPaths.map((k) => (
                 <CheckboxSettingItem
                   key={k}
-                  configKey={k}
+                  configPath={k as BooleanSettingsPath}
                   tooltip={k}
                   label={startCase(k.slice('__internal'.length))}
                 />

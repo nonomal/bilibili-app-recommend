@@ -1,33 +1,41 @@
-import { IconPark } from '$modules/icon/icon-park'
-import type { ReactNode } from 'react'
-import type { SetOptional } from 'type-fest'
+import { hasMarginLeft, hasSize } from '$utility/css'
+import type { ComponentType, ReactNode, SVGProps } from 'react'
+import IconParkOutlineTips from '~icons/icon-park-outline/tips'
 import { AntdTooltip } from './antd-custom'
+
+const DefaultIconComponent = IconParkOutlineTips
 
 export function HelpInfo({
   children,
-  iconProps,
   tooltipProps,
+  IconComponent,
+  className,
+  ...restSvgProps
 }: {
-  children?: ReactNode
+  children?: ReactNode // tooltip content
   tooltipProps?: Partial<ComponentProps<typeof AntdTooltip>>
-  iconProps?: SetOptional<ComponentProps<typeof IconPark>, 'name'>
-}) {
+  IconComponent?: ComponentType<SVGProps<SVGSVGElement>>
+} & SVGProps<SVGSVGElement>) {
+  const [_hasSize, _hasMarginLeft] = useMemo(
+    () => [hasSize(className), hasMarginLeft(className)],
+    [className],
+  )
+
+  const _className = clsx(
+    'cursor-pointer',
+    !_hasSize && 'size-16px',
+    !_hasMarginLeft && 'ml-4px',
+    className,
+  )
+
+  IconComponent ??= DefaultIconComponent
+  const icon = <IconComponent {...restSvgProps} className={_className} />
+
   return (
-    <>
-      {children && (
-        <AntdTooltip {...tooltipProps} title={children}>
-          <IconPark
-            name={'Tips'}
-            size={16}
-            {...iconProps}
-            style={{
-              cursor: 'pointer',
-              marginLeft: '4px',
-              ...iconProps?.style,
-            }}
-          />
-        </AntdTooltip>
-      )}
-    </>
+    !!children && (
+      <AntdTooltip {...tooltipProps} title={children}>
+        {icon}
+      </AntdTooltip>
+    )
   )
 }

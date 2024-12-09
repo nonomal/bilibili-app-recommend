@@ -1,8 +1,9 @@
 import { APP_NAME } from '$common'
-import { C } from '$common/emotion-css'
 import type { Settings } from '$modules/settings'
 import { settings, useSettingsSnapshot } from '$modules/settings'
-import { AntdMessage, shouldDisableShortcut } from '$utility'
+import { antMessage } from '$utility/antd'
+import { shouldDisableShortcut } from '$utility/dom'
+import { css } from '@emotion/react'
 import { Tag } from 'antd'
 import { isEqual } from 'es-toolkit'
 import { pick } from 'radash'
@@ -12,12 +13,12 @@ import { CheckboxSettingItem } from '../setting-item'
 import { ResetPartialSettingsButton, SettingsGroup } from './_shared'
 
 type CardBorderState = Partial<
-  Pick<Settings, 'styleUseCardBorder' | 'styleUseCardBorderOnlyOnHover'>
+  Pick<Settings['style']['videoCard'], 'useBorder' | 'useBorderOnlyOnHover'>
 >
 const borderCycleList: CardBorderState[] = [
-  { styleUseCardBorder: false }, // no border
-  { styleUseCardBorder: true, styleUseCardBorderOnlyOnHover: true }, // on hover
-  { styleUseCardBorder: true, styleUseCardBorderOnlyOnHover: false }, // always
+  { useBorder: false }, // no border
+  { useBorder: true, useBorderOnlyOnHover: true }, // on hover
+  { useBorder: true, useBorderOnlyOnHover: false }, // always
 ]
 const borderCycleListLabels = [
   '「卡片边框」: 禁用',
@@ -31,9 +32,9 @@ export function useHotkeyForConfigBorder() {
     (e) => {
       if (shouldDisableShortcut()) return
 
-      const curState: CardBorderState = pick(settings, [
-        'styleUseCardBorder',
-        'styleUseCardBorderOnlyOnHover',
+      const curState: CardBorderState = pick(settings.style.videoCard, [
+        'useBorder',
+        'useBorderOnlyOnHover',
       ])
       const curIndex = borderCycleList.findIndex((state) => {
         return isEqual(state, pick(curState, Object.keys(state) as (keyof CardBorderState)[]))
@@ -42,10 +43,10 @@ export function useHotkeyForConfigBorder() {
 
       const nextIndex = (curIndex + 1) % borderCycleList.length
       const nextState = borderCycleList[nextIndex]
-      Object.assign(settings, nextState)
+      Object.assign(settings.style.videoCard, nextState)
 
       const nextLabel = borderCycleListLabels[nextIndex]
-      AntdMessage.success(nextLabel)
+      antMessage.success(nextLabel)
     },
     { exactMatch: true },
   )
@@ -68,26 +69,65 @@ const S = {
 }
 
 export function TabPaneCustomUI() {
-  const { styleUseCardBorder } = useSettingsSnapshot()
+  const { style } = useSettingsSnapshot()
+  const { pureRecommend, videoCard } = style
 
   return (
     <div className={styles.tabPane} css={S.tabPane}>
-      <SettingsGroup title='样式自定义'>
+      {/* 通用 */}
+      <SettingsGroup
+        title={
+          <>
+            通用
+            <ResetPartialSettingsButton
+              className='ml-10'
+              paths={[
+                'style.general.videoSourceTabStandardHeight',
+                'style.general.popoverBorderColorUseColorPrimary',
+              ]}
+            />
+          </>
+        }
+      >
         <div css={S.itemsContainer}>
           <CheckboxSettingItem
-            configKey='styleUseStandardVideoSourceTab'
-            label='推荐 Tab: 按钮使用标准高度'
+            configPath='style.general.videoSourceTabStandardHeight'
+            label='Tab 栏使用标准高度'
             tooltip={explainForFlag('标准高度', '紧凑高度')}
           />
-
           <CheckboxSettingItem
-            configKey='styleUseStickyTabbarInPureRecommend'
+            configPath='style.general.popoverBorderColorUseColorPrimary'
+            label='下拉面板使用主题色边框'
+          />
+        </div>
+      </SettingsGroup>
+
+      {/* 全屏模式 */}
+      <SettingsGroup
+        title={
+          <>
+            全屏模式
+            <ResetPartialSettingsButton
+              className='ml-10'
+              paths={[
+                'style.pureRecommend.useStickyTabbar',
+                'style.pureRecommend.useCustomGrid',
+                'style.pureRecommend.useWhiteBackground',
+                'style.pureRecommend.hideTopChannel',
+              ]}
+            />
+          </>
+        }
+      >
+        <div css={S.itemsContainer}>
+          <CheckboxSettingItem
+            configPath='style.pureRecommend.useStickyTabbar'
             label='全屏模式: sticky tab bar'
             tooltip={explainForFlag('Tab 栏会吸附在顶栏下方', 'Tab 栏会随页面一起滚动')}
           />
 
           <CheckboxSettingItem
-            configKey='styleUseCustomGrid'
+            configPath='style.pureRecommend.useCustomGrid'
             label='全屏模式: 使用自定义网格配置'
             tooltip={
               <>
@@ -101,28 +141,30 @@ export function TabPaneCustomUI() {
           />
 
           <CheckboxSettingItem
-            configKey='styleUseWhiteBackground'
+            configPath='style.pureRecommend.useWhiteBackground'
             label='全屏模式: 使用纯白背景'
             tooltip={explainForFlag('纯白背景', '浅灰色背景')}
           />
 
           <CheckboxSettingItem
-            configKey={'styleHideTopChannel'}
+            configPath={'style.pureRecommend.hideTopChannel'}
             label='全屏模式: 隐藏顶部分区和Banner'
           />
         </div>
       </SettingsGroup>
 
+      {/* 视频卡片 */}
       <SettingsGroup
         title={
           <>
             视频卡片
             <ResetPartialSettingsButton
-              css={[C.ml(10)]}
-              keys={[
-                'styleUseCardBorder',
-                'styleUseCardBorderOnlyOnHover',
-                'styleUseCardBoxShadow',
+              className='ml-10'
+              paths={[
+                'style.videoCard.useBorder',
+                'style.videoCard.useBorderOnlyOnHover',
+                'style.videoCard.useBoxShadow',
+                'style.videoCard.usePadding',
                 'useDelayForHover',
               ]}
             />
@@ -131,7 +173,7 @@ export function TabPaneCustomUI() {
       >
         <div css={S.itemsContainer}>
           <CheckboxSettingItem
-            configKey='styleUseCardBorder'
+            configPath='style.videoCard.useBorder'
             label='使用卡片边框'
             tooltip=<>
               勾选后, 视频卡片会有边框包裹, 更像是一个卡片~ <br />
@@ -148,23 +190,29 @@ export function TabPaneCustomUI() {
           />
 
           <CheckboxSettingItem
-            configKey='styleUseCardBorderOnlyOnHover'
+            configPath='style.videoCard.useBorderOnlyOnHover'
             label='仅在悬浮时显示'
-            disabled={!styleUseCardBorder}
+            disabled={!style.videoCard.useBorder}
             tooltip={explainForFlag('仅在悬浮时显示', '一直显示')}
           />
 
           <CheckboxSettingItem
-            configKey='styleUseCardBoxShadow'
-            disabled={!styleUseCardBorder}
+            configPath='style.videoCard.useBoxShadow'
+            disabled={!style.videoCard.useBorder}
             label='悬浮卡片时使用发光效果'
             tooltip={<>悬浮卡片时使用发光效果, 看起来比较花哨~</>}
           />
 
           <CheckboxSettingItem
-            configKey='useDelayForHover'
+            configPath='useDelayForHover'
             label='延迟悬浮预览'
             tooltip={<>延迟悬浮预览</>}
+          />
+
+          <CheckboxSettingItem
+            configPath='style.videoCard.usePadding'
+            label='卡片外扩'
+            tooltip={<>卡片会外扩一点距离</>}
           />
         </div>
       </SettingsGroup>

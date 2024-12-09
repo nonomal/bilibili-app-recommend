@@ -7,12 +7,13 @@
  * https://box-shadow.dev/
  */
 
-import { borderColorValue, colorPrimaryValue } from '$components/css-vars'
-import { useIsDarkMode } from '$modules/dark-mode'
+import { APP_NAMESPACE } from '$common'
+import { bgLv1Value, bgLv2Value, borderColorValue, colorPrimaryValue } from '$components/css-vars'
 import { useSettingsSnapshot } from '$modules/settings'
 import { tweakLightness } from '$utility/css'
-import type { TheCssType } from '$utility/type'
-import { bgValue, borderRadiusValue } from '../css-vars'
+import type { CssProp } from '$utility/type'
+import { css as _css, css } from '@emotion/react'
+import { bgValue, videoCardBorderRadiusValue } from '../css-vars'
 
 const c = tweakLightness(colorPrimaryValue, 0.1)
 const borderAndShadow = css`
@@ -20,14 +21,8 @@ const borderAndShadow = css`
   box-shadow: 0px 0px 9px 4px ${c};
 `
 
-const hightlightBackground = (dark: boolean) => {
-  return css`
-    background-color: ${tweakLightness(bgValue, dark ? 0.03 : -0.04)};
-  `
-}
-
+/* cover zoom */
 const coverZoom = css`
-  /* cover zoom */
   .bili-video-card__cover {
     transform-origin: center center;
     transition: transform 0.2s ease-out;
@@ -35,17 +30,42 @@ const coverZoom = css`
   }
 `
 
-export function useCardBorderCss(): TheCssType {
-  const {
-    styleUseCardBorder: useBorder,
-    styleUseCardBorderOnlyOnHover: useBorderOnlyOnHover,
-    styleUseCardBoxShadow: useBoxShadow,
-    styleUseWhiteBackground,
-    useDelayForHover,
-    __internalVideoCardUsePadding,
-  } = useSettingsSnapshot()
+/**
+ * for dislike & blacklist card
+ * - show border ALWAYS
+ * - hover highlight bg
+ * - hover highlight separator
+ */
+export function useInNormalCardCss(showingInNormalCard: boolean): CssProp {
+  const sepIdentifier = `--${APP_NAMESPACE}-separator-color`
+  return useMemo(() => {
+    if (!showingInNormalCard) return undefined
+    return _css`
+      border-color: ${borderColorValue};
 
-  const dark = useIsDarkMode()
+      background-color: ${bgValue};
+      ${sepIdentifier}:  ${bgLv1Value};
+      &:hover {
+        background-color: ${bgLv1Value};
+        ${sepIdentifier}: ${bgLv2Value};
+      }
+
+      /* disable padding */
+      margin-inline: 0;
+      .bili-video-card__wrap {
+        padding: 0;
+      }
+    `
+  }, [showingInNormalCard])
+}
+
+export function useCardBorderCss(): CssProp {
+  const {
+    useDelayForHover,
+    style: {
+      videoCard: { useBorder, useBorderOnlyOnHover, useBoxShadow, usePadding },
+    },
+  } = useSettingsSnapshot()
 
   return useMemo(() => {
     return [
@@ -59,10 +79,10 @@ export function useCardBorderCss(): TheCssType {
       useBorder && [
         css`
           cursor: pointer;
-          border-radius: ${borderRadiusValue};
+          border-radius: ${videoCardBorderRadiusValue};
           &:hover {
             border-color: ${borderColorValue};
-            ${hightlightBackground(dark)}
+            background-color: ${bgLv1Value};
             ${useBoxShadow && borderAndShadow}
             ${useDelayForHover && coverZoom}
           }
@@ -76,7 +96,7 @@ export function useCardBorderCss(): TheCssType {
         // add padding & negative margin
         useBorderOnlyOnHover &&
           !useBoxShadow &&
-          __internalVideoCardUsePadding &&
+          usePadding &&
           css`
             margin-inline: -6px;
             .bili-video-card__wrap {
@@ -86,22 +106,14 @@ export function useCardBorderCss(): TheCssType {
           `,
       ],
     ]
-  }, [
-    useBorder,
-    useBorderOnlyOnHover,
-    useBoxShadow,
-    dark,
-    styleUseWhiteBackground,
-    useDelayForHover,
-    __internalVideoCardUsePadding,
-  ])
+  }, [useBorder, useBorderOnlyOnHover, useBoxShadow, usePadding, useDelayForHover])
 }
 
-export function getActiveCardBorderCss(active: boolean): TheCssType {
+export function getActiveCardBorderCss(active: boolean): CssProp {
   return (
     active &&
     css`
-      border-radius: ${borderRadiusValue};
+      border-radius: ${videoCardBorderRadiusValue};
       ${borderAndShadow}
     `
   )

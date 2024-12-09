@@ -1,10 +1,10 @@
-import { APP_NAME, HOST_APP, OPERATION_FAIL_MSG } from '$common'
+import { HOST_APP, OPERATION_FAIL_MSG, appWarn } from '$common'
 import type { AppRecItem, DmJson, PvideoJson } from '$define'
 import { settings } from '$modules/settings'
 import { gmrequest, isWebApiSuccess, request } from '$request'
-import { getCsrfToken } from '$utility'
+import { getCsrfToken } from '$utility/cookie'
 import { preloadImg } from '$utility/image'
-import { toast } from '$utility/toast'
+import toast from '$utility/toast'
 import { delay } from 'es-toolkit'
 import QuickLRU from 'quick-lru'
 
@@ -19,10 +19,10 @@ export async function videoshot(bvid: string) {
   const json = res.data as PvideoJson
 
   if (!isWebApiSuccess(json)) {
-    console.warn('[%s] videoshot error for %s: %o', APP_NAME, bvid, json)
+    appWarn('videoshot error for %s: %o', bvid, json)
   }
   if (!isVideoshotDataValid(json.data)) {
-    console.warn('[%s] videoshot data invalid bvid=%s: %o', APP_NAME, bvid, json.data)
+    appWarn('videoshot data invalid bvid=%s: %o', bvid, json.data)
   }
 
   return json
@@ -110,8 +110,8 @@ export async function fetchVideoData(bvid: string): Promise<VideoData> {
  * add 支持 avid & bvid, del 只支持 avid. 故使用 avid
  */
 
-function watchLaterFactory(action: 'add' | 'del') {
-  return async function watchLaterOp(avid: string) {
+function watchlaterFactory(action: 'add' | 'del') {
+  return async function watchlaterOp(avid: string) {
     const form = new URLSearchParams({
       aid: avid,
       csrf: getCsrfToken(),
@@ -134,8 +134,8 @@ function watchLaterFactory(action: 'add' | 'del') {
   }
 }
 
-export const watchLaterAdd = watchLaterFactory('add')
-export const watchLaterDel = watchLaterFactory('del')
+export const watchlaterAdd = watchlaterFactory('add')
+export const watchlaterDel = watchlaterFactory('del')
 
 /**
  * 不喜欢 / 撤销不喜欢

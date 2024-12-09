@@ -1,23 +1,25 @@
 import { type ItemsSeparator, type WatchLaterItemExtend } from '$define'
 import { EApiType } from '$define/index.shared'
 import { settings } from '$modules/settings'
-import { getHasLogined, getUid, toast, whenIdle } from '$utility'
+import { getHasLogined, getUid } from '$utility/cookie'
+import { whenIdle } from '$utility/dom'
+import toast from '$utility/toast'
 import dayjs from 'dayjs'
 import { shuffle } from 'es-toolkit'
 import { proxy, useSnapshot } from 'valtio'
 import { proxySet } from 'valtio/utils'
 import { QueueStrategy, type IService } from '../_base'
 import { getAllWatchlaterItemsV2, getWatchlaterItemFrom } from './api'
-import { type WatchlaterItem } from './api.d'
+import { type WatchlaterItem } from './types'
 import { WatchLaterUsageInfo } from './usage-info'
 
-export const watchLaterState = proxy({
+export const watchlaterState = proxy({
   updatedAt: 0,
   bvidSet: proxySet<string>(),
 })
 
-export function useWatchLaterState(bvid?: string) {
-  const set = useSnapshot(watchLaterState).bvidSet
+export function useWatchlaterState(bvid?: string) {
+  const set = useSnapshot(watchlaterState).bvidSet
   return !!bvid && set.has(bvid)
 }
 
@@ -28,8 +30,8 @@ if (getHasLogined() && getUid()) {
     const { items: allWatchLaterItems } = await getAllWatchlaterItemsV2()
     if (!allWatchLaterItems.length) return
 
-    watchLaterState.updatedAt = Date.now()
-    watchLaterState.bvidSet = proxySet<string>(allWatchLaterItems.map((x) => x.bvid))
+    watchlaterState.updatedAt = Date.now()
+    watchlaterState.bvidSet = proxySet<string>(allWatchLaterItems.map((x) => x.bvid))
   })()
 }
 
@@ -41,7 +43,7 @@ if (getHasLogined() && getUid()) {
 export class WatchLaterRecService implements IService {
   innerService: NormalOrderService | ShuffleOrderService
   constructor(keepOrderWhenShuffle?: boolean) {
-    this.innerService = settings.shuffleForWatchLater
+    this.innerService = settings.watchlaterUseShuffle
       ? new ShuffleOrderService(keepOrderWhenShuffle)
       : new NormalOrderService()
   }
@@ -103,7 +105,7 @@ class ShuffleOrderService implements IService {
   static PAGE_SIZE = 20
   qs = new QueueStrategy<WatchLaterItemExtend | ItemsSeparator>(ShuffleOrderService.PAGE_SIZE)
 
-  addSeparator = settings.addSeparatorForWatchLater
+  addSeparator = settings.watchlaterAddSeparator
   loaded = false
   total: number = 0
 
@@ -187,7 +189,7 @@ class ShuffleOrderService implements IService {
 
 class NormalOrderService implements IService {
   // configs
-  addSeparator = settings.addSeparatorForWatchLater
+  addSeparator = settings.watchlaterAddSeparator
   addAtAsc = settings.watchlaterNormalOrderSortByAddAtAsc
 
   firstPageLoaded = false

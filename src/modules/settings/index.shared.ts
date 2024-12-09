@@ -1,33 +1,32 @@
 import { APP_NAME, baseDebug } from '$common'
 import { BilibiliArticleDraft } from '$modules/bilibili/me/article-draft'
-import { internalBooleanKeys, type SettingsKey } from '.'
+import { internalBooleanPaths, type LeafSettingsPath } from '.'
 
 export const debug = baseDebug.extend('settings')
 
 export const articleDraft = new BilibiliArticleDraft(APP_NAME)
 
-const privateKeys: SettingsKey[] = ['accessKey', 'accessKeyExpireAt']
+const privateKeys: LeafSettingsPath[] = ['accessKey', 'accessKeyExpireAt']
 
-export const getBackupOmitKeys: () => SettingsKey[] = () => [
+export const getBackupOmitPaths: () => LeafSettingsPath[] = () => [
   ...privateKeys,
 
-  ...internalBooleanKeys,
+  ...internalBooleanPaths,
 
   // the flag
   'backupSettingsToArticleDraft',
 
   // 无关紧要
-  'shuffleForFav',
-  'addSeparatorForFav',
+  'fav.addSeparator',
 
-  'shuffleForWatchLater',
-  'addSeparatorForWatchLater',
+  'watchlaterUseShuffle',
+  'watchlaterAddSeparator',
 
-  'shuffleForPopularWeekly',
-  'anonymousForPopularGeneral',
+  'popularWeeklyUseShuffle',
+  'popularGeneralUseAnonymous',
 ]
 
-export const restoreOmitKeys: SettingsKey[] = [
+export const restoreOmitPaths: LeafSettingsPath[] = [
   ...privateKeys,
 
   // the flag

@@ -11,6 +11,7 @@ import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig, type ConfigEnv, type PluginOption } from 'vite'
 import importer from 'vite-plugin-importer'
+import Inspect from 'vite-plugin-inspect'
 import monkey, { cdn } from 'vite-plugin-monkey'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { name as packageName, version as packageVersion } from './package.json'
@@ -19,7 +20,7 @@ const typedScssModules = interopImportCJSDefault(typedScssModulesOriginal)
 const isDev = process.env.NODE_ENV == 'development'
 if (isDev) {
   // only needed in dev mode
-  typedScssModules(__dirname + '/src', {
+  typedScssModules(__dirname + '/src/**/*.module.scss', {
     watch: true,
   })
 }
@@ -61,17 +62,17 @@ let downloadURL: string | undefined
 let updateURL: string | undefined
 
 if (process.env.RELEASE) {
-  const baseUrl = 'https://github.com/magicdawn/bilibili-app-recommend/raw/release/'
+  const baseUrl = 'https://github.com/magicdawn/bilibili-gate/raw/release/'
   downloadURL = `${baseUrl}${fileName}`
   updateURL = `${baseUrl}${metaFileName}`
 } else if (process.env.RELEASE_NIGHTLY) {
-  const baseUrl = 'https://github.com/magicdawn/bilibili-app-recommend/raw/release-nightly/'
+  const baseUrl = 'https://github.com/magicdawn/bilibili-gate/raw/release-nightly/'
   downloadURL = `${baseUrl}${fileName}`
   updateURL = `${baseUrl}${metaFileName}`
 }
 
 // https://vitejs.dev/config/
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => ({
   define: {
     __SCRIPT_VERSION__: JSON.stringify(scriptVersion),
   },
@@ -102,17 +103,24 @@ export default defineConfig(({ command }) => ({
     alias: {},
   },
 
+  // Vite ignores the target value in the tsconfig.json, following the same behavior as esbuild.
+  // To specify the target in dev, the `esbuild.target` option can be used, which defaults to `esnext` for minimal transpilation.
+  // In builds, the `build.target` option takes higher priority over `esbuild.target` and can also be set if needed.
+  esbuild: {
+    target: 'es2022', // transform explicit-resource-management, current stage 3
+  },
+
   build: {
     emptyOutDir: process.env.RELEASE ? false : true,
     cssMinify: minify,
     minify: minify,
     // target defaults `modules`, = ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14']
-    // target: ''
+    // target: 'modules',
   },
 
   // Set this to 0.0.0.0 or true to listen on all addresses, including LAN and public addresses.
-  server: { host: true },
-  preview: { host: true },
+  // server: { host: true },
+  // preview: { host: true },
 
   plugins: [
     tsconfigPaths(),
@@ -127,6 +135,12 @@ export default defineConfig(({ command }) => ({
         IconsResolver({
           prefix: 'Icon',
           extension: 'jsx',
+          alias: {
+            // prevent `IconIconPark` double `Icon`
+            'park-outline': 'icon-park-outline',
+            'park-solid': 'icon-park-solid',
+            'park-twotone': 'icon-park-twotone',
+          },
         }),
       ],
       imports: [
@@ -144,7 +158,10 @@ export default defineConfig(({ command }) => ({
         },
         { from: 'react-dom/client', imports: ['Root'], type: true },
         { from: 'react-dom/client', imports: ['createRoot'] },
-        { from: '@emotion/react', imports: ['css'] },
+
+        // @emotion/babel-plugin can not optimize auto-import, babel is pre transform, auto-import is a post transform
+        // { from: '@emotion/react', imports: ['css'] },
+
         { from: 'clsx', imports: ['clsx'] },
         { from: 'polished', imports: ['size'] },
       ],
@@ -162,15 +179,15 @@ export default defineConfig(({ command }) => ({
     monkey({
       entry: './src/index.ts',
       userscript: {
-        'name': packageName,
+        'name': 'Bilibili-Gate',
+        'description': 'Bilibili 自定义首页',
+        // 'description': 'Add app like recommend part to bilibili homepage',
         'version': scriptVersion,
         'namespace': 'https://magicdawn.fun',
-        'description': 'B站首页推荐',
         'icon': 'https://www.bilibili.com/favicon.ico',
-        // 'description': 'Add app like recommend part to bilibili homepage',
         'author': 'magicdawn',
-        'supportURL': 'https://github.com/magicdawn/bilibili-app-recommend/issues',
-        'homepageURL': 'https://greasyfork.org/zh-CN/scripts/443530-bilibili-app-recommend',
+        'supportURL': 'https://github.com/magicdawn/bilibili-gate/issues',
+        'homepageURL': 'https://greasyfork.org/zh-CN/scripts/443530-bilibili-gate',
         downloadURL,
         updateURL,
         'license': 'MIT',
@@ -202,7 +219,7 @@ export default defineConfig(({ command }) => ({
         metaFileName,
 
         // unpkg is not stable
-        // https://greasyfork.org/zh-CN/scripts/443530-bilibili-app-recommend/discussions/197900
+        // https://greasyfork.org/zh-CN/scripts/443530-bilibili-gate/discussions/197900
 
         externalGlobals: {
           // https://caniuse.com/resizeobserver
@@ -255,6 +272,8 @@ export default defineConfig(({ command }) => ({
       visualizer({
         open: true,
       }),
+
+    mode === 'development' && Inspect(),
   ].filter(Boolean),
 }))
 
@@ -270,12 +289,13 @@ function getBabelImportPlugins(command: ConfigEnv['command']): PluginOption[] {
         libraryName: 'antd',
         libraryDirectory: 'es',
       }),
-    command === 'build' &&
-      importer({
-        libraryName: '@icon-park/react',
-        libraryDirectory: 'es/icons',
-        camel2DashComponentName: false, // default: true,
-      }),
+
+    // command === 'build' &&
+    //   importer({
+    //     libraryName: '@icon-park/react',
+    //     libraryDirectory: 'es/icons',
+    //     camel2DashComponentName: false, // default: true,
+    //   }),
   ].filter(Boolean)
 }
 
@@ -287,7 +307,7 @@ function getReactPlugin(command: ConfigEnv['command']) {
   const babel = react({
     jsxImportSource: '@emotion/react',
     babel: {
-      plugins: ['@emotion/babel-plugin'],
+      plugins: ['@emotion/babel-plugin', '@babel/plugin-syntax-explicit-resource-management'],
     },
   })
 

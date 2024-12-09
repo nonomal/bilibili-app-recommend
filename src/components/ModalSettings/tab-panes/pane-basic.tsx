@@ -1,3 +1,4 @@
+import { APP_NAME } from '$common'
 import { flexVerticalCenterStyle, inlineFlexVerticalCenterStyle } from '$common/emotion-css'
 import { AccessKeyManage } from '$components/AccessKeyManage'
 import { CheckboxSettingItem } from '$components/ModalSettings/setting-item'
@@ -5,9 +6,10 @@ import { TabIcon } from '$components/RecHeader/tab-config'
 import { ETab } from '$components/RecHeader/tab-enum'
 import { VideoLinkOpenMode, VideoLinkOpenModeConfig } from '$components/VideoCard/index.shared'
 import { HelpInfo } from '$components/_base/HelpInfo'
-import { IconPark } from '$modules/icon/icon-park'
+import { IconForCopy } from '$modules/icon'
 import { updateSettings, useSettingsSnapshot } from '$modules/settings'
-import { AntdMessage } from '$utility'
+import { antMessage } from '$utility/antd'
+import { css } from '@emotion/react'
 import { Button, Select, Space, Tag } from 'antd'
 import styles from '../index.module.scss'
 import { toastAndReload } from '../index.shared'
@@ -45,7 +47,7 @@ export function TabPaneBasic() {
   const handleCopyScriptVersion = useMemoizedFn(() => {
     const content = `v${__SCRIPT_VERSION__}`
     GM.setClipboard(content)
-    AntdMessage.success(`已复制当前版本: ${content}`)
+    antMessage.success(`已复制当前版本: ${content}`)
   })
 
   return (
@@ -54,13 +56,7 @@ export function TabPaneBasic() {
         title={
           <>
             <TabIcon tabKey={ETab.RecommendApp} size={30} mr={5} /> 推荐 access_key
-            <HelpInfo
-              iconProps={{
-                name: 'Help',
-                size: 18,
-                style: { marginTop: 6, marginLeft: 5 },
-              }}
-            >
+            <HelpInfo className='size-18px mt-6px ml-5px' IconComponent={IconParkOutlineHelp}>
               <span css={inlineFlexVerticalCenterStyle}>
                 用于「
                 <TabIcon tabKey={ETab.RecommendApp} mr={5} />
@@ -78,7 +74,7 @@ export function TabPaneBasic() {
       <SettingsGroup title='开关'>
         <Space size={10} wrap>
           <CheckboxSettingItem
-            configKey='pureRecommend'
+            configPath='pureRecommend'
             label='全屏模式'
             tooltip={
               <>
@@ -93,7 +89,7 @@ export function TabPaneBasic() {
           />
 
           <CheckboxSettingItem
-            configKey={'useNarrowMode'}
+            configPath={'useNarrowMode'}
             label='居中模式'
             tooltip={
               <>
@@ -105,12 +101,12 @@ export function TabPaneBasic() {
           />
 
           <CheckboxSettingItem
-            configKey={'showModalFeedOnLoad'}
+            configPath={'showModalFeedOnLoad'}
             label='自动「查看更多」'
             tooltip='打开首页时自动打开「查看更多」弹窗'
             extraAction={(val) => {
               if (val) {
-                AntdMessage.success(
+                antMessage.success(
                   '已开启自动「查看更多」: 下次打开首页时将自动打开「查看更多」弹窗',
                 )
               }
@@ -118,7 +114,7 @@ export function TabPaneBasic() {
           />
 
           <CheckboxSettingItem
-            configKey={'showModalFeedEntry'}
+            configPath={'showModalFeedEntry'}
             label='「查看更多」按钮'
             tooltip='是否展示「查看更多」按钮'
           />
@@ -126,63 +122,71 @@ export function TabPaneBasic() {
       </SettingsGroup>
 
       <SettingsGroup title='视频链接'>
-        <div css={flexVerticalCenterStyle}>
-          默认打开模式
-          <HelpInfo
-            tooltipProps={{ color: 'rgba(0, 0, 0, 0.85)' }} // 默认使用 colorPrimary, 链接可能看不清
-          >
-            选择点击视频(封面图片 或 标题)时打开的模式 <br />
-            {openModeOptions.map(({ value, config }) => {
-              return (
-                !!config.desc && (
-                  <div
-                    key={value}
-                    css={css`
-                      display: flex;
-                      align-items: flex-start;
-                      margin-top: 10px;
-                      &:first-child {
-                        margin-top: 0;
-                      }
-                      .label {
-                        display: inline-flex;
-                        align-items: center;
-                        .text {
-                          min-width: 95px;
-                          margin-left: 4px;
-                          margin-right: 10px;
+        <Space size={10}>
+          <div css={flexVerticalCenterStyle}>
+            默认打开模式
+            <HelpInfo
+              tooltipProps={{ color: 'rgba(0, 0, 0, 0.85)' }} // 默认使用 colorPrimary, 链接可能看不清
+            >
+              选择点击视频(封面图片 或 标题)时打开的模式 <br />
+              {openModeOptions.map(({ value, config }) => {
+                return (
+                  !!config.desc && (
+                    <div
+                      key={value}
+                      css={css`
+                        display: flex;
+                        align-items: flex-start;
+                        margin-top: 10px;
+                        &:first-child {
+                          margin-top: 0;
                         }
-                      }
-                    `}
-                  >
-                    <span className='label'>
-                      {config.icon}
-                      <span className='text'>{config.label}</span>
-                    </span>
-                    <span className='desc'>{config.desc}</span>
-                  </div>
+                        .label {
+                          display: inline-flex;
+                          align-items: center;
+                          .text {
+                            min-width: 95px;
+                            margin-left: 4px;
+                            margin-right: 10px;
+                          }
+                        }
+                      `}
+                    >
+                      <span className='label'>
+                        {config.icon}
+                        <span className='text'>{config.label}</span>
+                      </span>
+                      <span className='desc'>{config.desc}</span>
+                    </div>
+                  )
                 )
-              )
-            })}
-          </HelpInfo>
-          <Select
-            css={css`
-              width: 160px;
-              margin-left: 8px;
-            `}
-            options={openModeOptions}
-            value={videoLinkOpenMode}
-            onChange={(v) => {
-              updateSettings({ videoLinkOpenMode: v })
-            }}
+              })}
+            </HelpInfo>
+            <Select
+              css={css`
+                width: 160px;
+                margin-left: 8px;
+              `}
+              options={openModeOptions}
+              value={videoLinkOpenMode}
+              onChange={(v) => {
+                updateSettings({ videoLinkOpenMode: v })
+              }}
+            />
+          </div>
+
+          <CheckboxSettingItem
+            configPath='pipWindowDefaultLocked'
+            label='小窗默认锁定'
+            tooltip='开启后,小窗打开时默认为锁定状态'
           />
-        </div>
+        </Space>
       </SettingsGroup>
 
       <SettingsGroup title='预览'>
         <Space size={10}>
           <CheckboxSettingItem
-            configKey='autoPreviewWhenKeyboardSelect'
+            configPath='autoPreviewWhenKeyboardSelect'
             label='键盘选中后自动开始预览'
             tooltip={
               <>
@@ -194,7 +198,7 @@ export function TabPaneBasic() {
           />
 
           <CheckboxSettingItem
-            configKey='autoPreviewWhenHover'
+            configPath='autoPreviewWhenHover'
             label='鼠标悬浮后自动开始预览'
             tooltip={
               <>
@@ -205,7 +209,7 @@ export function TabPaneBasic() {
           />
 
           <CheckboxSettingItem
-            configKey='startPlayFromPreviewPoint'
+            configPath='startPlayFromPreviewPoint'
             label='从预览处开始播放'
             tooltip={
               <>
@@ -248,40 +252,27 @@ export function TabPaneBasic() {
                   margin-inline: 4px;
                 `}
               >
-                v{__SCRIPT_VERSION__}
+                {APP_NAME} v{__SCRIPT_VERSION__}
               </Tag>
-              <IconPark
-                name={'Copy'}
-                size={16}
-                onClick={handleCopyScriptVersion}
-                css={css`
-                  cursor: pointer;
-                `}
-              />
+              <IconForCopy className='size-16px cursor-pointer' onClick={handleCopyScriptVersion} />
             </span>
           </>
         }
       >
         <Space size={10} wrap>
-          <Button href='https://github.com/magicdawn/bilibili-app-recommend' target='_blank'>
+          <Button href='https://github.com/magicdawn/bilibili-gate' target='_blank'>
             GitHub 主页
           </Button>
-          <Button
-            href='https://greasyfork.org/zh-CN/scripts/443530-bilibili-app-recommend'
-            target='_blank'
-          >
+          <Button href='https://greasyfork.org/zh-CN/scripts/443530-bilibili-gate' target='_blank'>
             GreasyFork 主页
           </Button>
           <Button
-            href='https://github.com/magicdawn/bilibili-app-recommend#%E5%BF%AB%E6%8D%B7%E9%94%AE%E8%AF%B4%E6%98%8E'
+            href='https://github.com/magicdawn/bilibili-gate#%E5%BF%AB%E6%8D%B7%E9%94%AE%E8%AF%B4%E6%98%8E'
             target='_blank'
           >
             查看可用的快捷键
           </Button>
-          <Button
-            href='https://github.com/magicdawn/bilibili-app-recommend/releases'
-            target='_blank'
-          >
+          <Button href='https://github.com/magicdawn/bilibili-gate/releases' target='_blank'>
             更新日志
           </Button>
           <Button href='https://afdian.com/a/magicdawn' target='_blank'>

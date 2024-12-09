@@ -4,12 +4,12 @@ export interface ResourceListJSON {
   code: number
   message: string
   ttl: number
-  data: Data
+  data: FavFolderDetail
 }
 
-export interface Data {
+export interface FavFolderDetail {
   info: FavFolderDetailInfo
-  medias: Media[]
+  medias: FavFolderDetailMedia[]
   has_more: boolean
   ttl: number
 }
@@ -50,7 +50,7 @@ export interface InfoUpper {
   vip_statue: number
 }
 
-export interface Media {
+export interface FavFolderDetailMedia {
   id: number
   type: number
   title: string

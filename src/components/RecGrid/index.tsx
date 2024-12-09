@@ -18,14 +18,14 @@ import { colorPrimaryValue } from '$components/css-vars'
 import { type RecItemType, type RecItemTypeOrSeparator } from '$define'
 import { EApiType } from '$define/index.shared'
 import { $headerHeight } from '$header'
-import { OpenExternalLinkIcon } from '$modules/icon'
-import { IconPark } from '$modules/icon/icon-park'
+import { IconForOpenExternalLink } from '$modules/icon'
 import { concatThenUniq, refreshForGrid } from '$modules/rec-services'
 import { hotStore } from '$modules/rec-services/hot'
 import { getIService } from '$modules/rec-services/service-map.ts'
 import { useSettingsSnapshot } from '$modules/settings'
 import { isSafari } from '$ua'
-import { AntdMessage } from '$utility'
+import { antMessage } from '$utility/antd'
+import { css } from '@emotion/react'
 import { useEventListener, useLatest } from 'ahooks'
 import { Divider } from 'antd'
 import type { AxiosError } from 'axios'
@@ -311,14 +311,14 @@ export const RecGrid = forwardRef<RecGridRef, RecGridProps>(function RecGrid(
 
       const newItems = items.slice()
       newItems.splice(index, 1)
-      AntdMessage.success(`已移除: ${data.title}`, 4)
+      antMessage.success(`已移除: ${data.title}`, 4)
 
       if (tab === ETab.Watchlater) {
         serviceMapBox.val[tab].decreaseTotal()
         updateExtraInfo(tab)
       }
       if (tab === ETab.Fav) {
-        serviceMapBox.val[tab].total--
+        serviceMapBox.val[tab].decreaseTotal()
         updateExtraInfo(tab)
       }
 
@@ -379,36 +379,30 @@ export const RecGrid = forwardRef<RecGridRef, RecGridProps>(function RecGrid(
         <>
           {hasMore ? (
             <>
-              {/* <IconSvgSpinnersBarsRotateFade
-                {...size(30)}
-                className='mr-10'
+              <IconParkOutlineLoading
+                className='size-40px animate-spin mr-10px'
                 css={css`
                   color: ${colorPrimaryValue};
                 `}
-              /> */}
-              <IconPark
-                name='Loading'
-                fill={colorPrimaryValue}
-                spin
-                size={40}
-                style={{ marginRight: 10 }}
               />
               加载中~
             </>
           ) : (
-            '没有更多了~'
+            <>没有更多了~</>
           )}
         </>
       )}
     </div>
   )
 
-  const { useNarrowMode, styleUseCustomGrid } = useSettingsSnapshot()
+  const { useNarrowMode, style } = useSettingsSnapshot()
   const gridClassName = clsx(
     APP_CLS_GRID, // for customize css
     scopedClsNames.videoGrid,
     scopedClsNames.newCardStyle,
-    styleUseCustomGrid ? scopedClsNames.videoGridCustom : scopedClsNames.videoGridBiliFeed4,
+    style.pureRecommend.useCustomGrid
+      ? scopedClsNames.videoGridCustom
+      : scopedClsNames.videoGridBiliFeed4,
     useNarrowMode && scopedClsNames.narrowMode, // 居中
     className,
   )
@@ -437,8 +431,8 @@ export const RecGrid = forwardRef<RecGridRef, RecGridProps>(function RecGrid(
       <div className={scopedClsNames.videoGridContainer}>
         <div className={gridClassName}>
           {new Array(28).fill(undefined).map((_, index) => {
-            const x = <VideoCard key={index} loading={true} className={APP_CLS_CARD} />
-            return <VideoCard key={index} loading={true} className={APP_CLS_CARD} />
+            const x = <VideoCard key={index} loading={true} className={APP_CLS_CARD} tab={tab} />
+            return <VideoCard key={index} loading={true} className={APP_CLS_CARD} tab={tab} />
           })}
         </div>
       </div>
@@ -479,13 +473,14 @@ export const RecGrid = forwardRef<RecGridRef, RecGridProps>(function RecGrid(
         <VideoCard
           key={item.uniqId}
           className={clsx(APP_CLS_CARD, { [APP_CLS_CARD_ACTIVE]: active })}
-          css={[cardBorderCss, getActiveCardBorderCss(active)]}
+          baseCss={[cardBorderCss, getActiveCardBorderCss(active)]}
           item={item}
           active={active}
           onRemoveCurrent={handleRemoveCard}
           onMoveToFirst={handleMoveCardToFirst}
           onRefresh={refresh}
           emitter={videoCardEmitters[index]}
+          tab={tab}
         />
       )
     }
@@ -611,7 +606,7 @@ function ErrorDetail({ err, tab }: { err: any; tab: ETab }) {
       {tab === ETab.Hot && hotStore.subtab === EHotSubTab.PopularWeekly && (
         <p className='mt-8 flex items-center justify-center'>
           可能需手动输入验证码
-          <OpenExternalLinkIcon className='ml-12' />
+          <IconForOpenExternalLink className='ml-12' />
           <a href='https://www.bilibili.com/v/popular/weekly' target={target} className='ml-2'>
             每周必看
           </a>

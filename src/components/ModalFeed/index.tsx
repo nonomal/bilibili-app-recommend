@@ -1,3 +1,4 @@
+import { appClsDarkSelector } from '$common/css-vars-export.module.scss'
 import { CheckboxSettingItem } from '$components/ModalSettings/setting-item'
 import type { RecGridRef } from '$components/RecGrid'
 import { RecGrid } from '$components/RecGrid'
@@ -8,9 +9,9 @@ import { VideoSourceTab } from '$components/RecHeader/tab'
 import { BaseModal, BaseModalStyle, ModalClose } from '$components/_base/BaseModal'
 import { CollapseBtn } from '$components/_base/CollapseBtn'
 import { colorPrimaryValue } from '$components/css-vars'
-import { useIsDarkMode } from '$modules/dark-mode'
 import { useSettingsSnapshot } from '$modules/settings'
-import { AntdMessage } from '$utility'
+import { antMessage } from '$utility/antd'
+import { css } from '@emotion/react'
 
 const S = {
   modalMask: (narrowMode: boolean) => [
@@ -34,7 +35,7 @@ const S = {
         height: calc(100vh - 10px);
 
         border: none;
-        :global(body.dark) & {
+        :global(${appClsDarkSelector}) & {
           border: none;
         }
       `,
@@ -42,9 +43,6 @@ const S = {
       css`
         width: 100vw;
         height: 100vh;
-        // border-radius: 20px;
-        // overflow: hidden;
-        // box-shadow: 0px 0px 9px 4px vars.$app-color-primary;
       `,
   ],
 
@@ -57,7 +55,7 @@ const S = {
   `,
 
   btnRefresh: css`
-    body.dark & {
+    ${appClsDarkSelector} & {
       color: #eee !important;
       background-color: #333 !important;
       border-color: transparent !important;
@@ -86,19 +84,12 @@ export const ModalFeed = memo(function ModalFeed({ show, onHide }: IProps) {
   } = useSettingsSnapshot()
 
   const useFullScreen = !useNarrowMode && modalFeedFullScreen
-  const dark = useIsDarkMode()
-
   const modalBorderCss = useMemo(() => {
-    if (useFullScreen) {
-      return css`
-        border: 5px solid ${colorPrimaryValue};
-      `
-    } else if (dark) {
-      return css`
-        border: 1px solid ${colorPrimaryValue};
-      `
-    }
-  }, [dark, useFullScreen])
+    const borderWidth = useFullScreen ? 5 : 1
+    return css`
+      border: ${borderWidth}px solid ${colorPrimaryValue};
+    `
+  }, [useFullScreen])
 
   const onRefresh: OnRefresh = useMemoizedFn((...args) => {
     return recGridRef.current?.refresh(...args)
@@ -200,19 +191,19 @@ function ModalFeedConfigChecks() {
   return (
     <>
       <CheckboxSettingItem
-        configKey={'showModalFeedOnLoad'}
+        configPath={'showModalFeedOnLoad'}
         label='自动查看更多'
         tooltip='打开首页时默认打开推荐弹窗'
         css={inModalFeedStyle}
         extraAction={(val) => {
           if (val) {
-            AntdMessage.success('已开启自动查看更多: 下次打开首页时将直接展示推荐弹窗')
+            antMessage.success('已开启自动查看更多: 下次打开首页时将直接展示推荐弹窗')
           }
         }}
       />
 
       <CheckboxSettingItem
-        configKey='modalFeedFullScreen'
+        configPath='modalFeedFullScreen'
         label='全屏'
         tooltip='世界清净了~'
         css={inModalFeedStyle}

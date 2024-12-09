@@ -1,22 +1,16 @@
-import { APP_CLS_ROOT, APP_NAME } from '$common'
+import { APP_CLS_ROOT } from '$common'
+import { appBgId, appColorPrimaryId } from '$common/css-vars-export.module.scss'
+import { useAntLinkColorGlobalCss } from '$common/emotion-css'
 import { $headerWidth, $usingEvolevdHeader, useBackToTopRight } from '$header'
 import { useColors, useIsDarkMode } from '$modules/dark-mode'
 import { useSettingsSnapshot } from '$modules/settings'
+import type { CssProp } from '$utility/type'
 import { Global, css as _css, css } from '@emotion/react'
-import { USING_FONT_FAMILY } from './AntdApp'
 import { useColorPrimaryHex } from './ModalSettings/theme.shared'
-import {
-  bgIdentifier,
-  borderColorIdentifier,
-  colorPrimaryIdentifier,
-  colorPrimaryValue,
-  getBorderColor,
-} from './css-vars'
 
 export function GlobalStyle() {
   const colorPrimary = useColorPrimaryHex()
-  const { pureRecommend, styleUseCustomGrid, styleUseWhiteBackground, styleHideTopChannel } =
-    useSettingsSnapshot()
+  const { pureRecommend, style } = useSettingsSnapshot()
   const dark = useIsDarkMode()
   const { c, bg } = useColors()
   const backToTopRight = useBackToTopRight()
@@ -28,32 +22,20 @@ export function GlobalStyle() {
   // const padding = width === 90 ? 0 : '0 10px'
   const padding = '0 10px'
 
+  const more: CssProp = [useAntLinkColorGlobalCss()]
+
   return (
     <>
       <Global
-        styles={_css`
-          :root {
-            ${colorPrimaryIdentifier}: ${colorPrimary};
-            --${APP_NAME}-bg-color: ${bg};
-            --${APP_NAME}-color: ${c};
-            ${borderColorIdentifier}: ${getBorderColor(dark, styleUseWhiteBackground)};
-          }
-
-          .${APP_CLS_ROOT} {
-            font-family: ${USING_FONT_FAMILY};
-            --back-top-right: 24px;
-
-            .bili-video-card a:not(.disable-hover):hover{
-              color: ${colorPrimaryValue} !important;
+        styles={[
+          _css`
+            :root {
+              ${appColorPrimaryId}: ${colorPrimary};
+              ${appBgId}: ${dark ? '#222' : style.pureRecommend.useWhiteBackground ? `var(--bg1)` : `var(--bg2)`};
             }
-          }
-
-          @media (max-width: 1440px) {
-            .${APP_CLS_ROOT} {
-              --back-top-right: 16px;
-            }
-          }
-        `}
+          `,
+          more,
+        ]}
       />
 
       {pureRecommend && (
@@ -75,7 +57,7 @@ export function GlobalStyle() {
               }
             `,
 
-            styleUseCustomGrid &&
+            style.pureRecommend.useCustomGrid &&
               css`
                 /* enlarge container width */
                 #i_cecream,
@@ -92,7 +74,7 @@ export function GlobalStyle() {
                 }
               `,
 
-            styleUseCustomGrid &&
+            style.pureRecommend.useCustomGrid &&
               typeof backToTopRight === 'number' &&
               css`
                 .${APP_CLS_ROOT} {
@@ -100,7 +82,30 @@ export function GlobalStyle() {
                 }
               `,
 
-            styleHideTopChannel &&
+            /**
+             * extra background-color work for `PureRecommend`
+             */
+            style.pureRecommend.useWhiteBackground
+              ? css`
+                  body {
+                    /* same as #i_cecream */
+                    background-color: var(--bg1);
+                  }
+                `
+              : css`
+                  body,
+                  .large-header,
+                  #i_cecream,
+                  .bili-header .bili-header__channel {
+                    background-color: var(--bg2);
+                  }
+                  .bili-header .bili-header__channel .channel-entry-more__link,
+                  .bili-header .bili-header__channel .channel-link {
+                    background-color: var(--bg1);
+                  }
+                `,
+
+            style.pureRecommend.hideTopChannel &&
               css`
                 .bili-header__channel,
                 .bili-header__banner {
@@ -148,42 +153,6 @@ export function GlobalStyle() {
 
                 .area-header-wrapper {
                   margin-top: 10px;
-                }
-              `,
-
-            /**
-             * background-color
-             */
-            styleUseWhiteBackground
-              ? css`
-                  :root {
-                    ${bgIdentifier}: var(--bg1);
-                  }
-                  /* same as #i_cecream */
-                  body {
-                    background-color: var(--bg1);
-                  }
-                `
-              : css`
-                  :root {
-                    ${bgIdentifier}: var(--bg2);
-                  }
-                  body,
-                  .large-header,
-                  #i_cecream,
-                  .bili-header .bili-header__channel {
-                    background-color: var(--bg2);
-                  }
-
-                  .bili-header .bili-header__channel .channel-entry-more__link,
-                  .bili-header .bili-header__channel .channel-link {
-                    background-color: var(--bg1);
-                  }
-                `,
-            dark &&
-              css`
-                :root {
-                  ${bgIdentifier}: #222;
                 }
               `,
           ]}

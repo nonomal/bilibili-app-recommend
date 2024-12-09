@@ -7,8 +7,9 @@
 
 ## Todo
 
-- [x] preview invalid 时自动重新获取
-- [x] dark mode 切换时, cover border 显得很突兀
+- [x] cache ALL Dynamic Feed with IDB in search case, because it's based on client search
+- [x] advance search for dynamic feed
+- [x] invistigate antd Button.Group missing background issue
 
 ## 实现细节
 

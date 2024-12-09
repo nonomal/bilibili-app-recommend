@@ -1,3 +1,5 @@
+import { appClsDarkSelector } from '$common/css-vars-export.module.scss'
+import { css } from '@emotion/react'
 import { useToggle } from 'ahooks'
 import type { Actions } from 'ahooks/lib/useToggle'
 
@@ -26,7 +28,7 @@ export const CollapseBtn = forwardRef<CollapseBtnRef, IProps>(function CollapseB
         height: 31px;
         border-radius: 50%;
 
-        body.dark & {
+        ${appClsDarkSelector} & {
           color: #eee !important;
           border-color: transparent !important;
           background-color: #333 !important;

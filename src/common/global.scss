@@ -1,3 +1,42 @@
+@use 'sass:meta';
+@use 'css-vars' as *;
+
+:root {
+  #{$app-custom-font-family-id}: #{meta.inspect($app-custom-font-family)};
+}
+
+.#{$app-cls-color-primary} {
+  color: var(#{$app-color-primary-id});
+}
+
+// colors
+:root {
+  #{$app-border-color-id}: oklch(from var($app-bg-id) calc(l - 0.05) c h); // #fff -> #eee
+  #{$app-bg-lv1-id}: oklch(from var($app-bg-id) calc(l - 0.04) c h);
+  #{$app-bg-lv2-id}: oklch(from var($app-bg-id) calc(l - 0.08) c h);
+  #{$app-bg-lv3-id}: oklch(from var($app-bg-id) calc(l - 0.12) c h);
+
+  &.#{$app-cls-dark} {
+    #{$app-border-color-id}: oklch(from var($app-bg-id) calc(l + 0.07) c h); // #222 -> #333
+    #{$app-bg-lv1-id}: oklch(from var($app-bg-id) calc(l + 0.03) c h);
+    #{$app-bg-lv2-id}: oklch(from var($app-bg-id) calc(l + 0.08) c h);
+    #{$app-bg-lv3-id}: oklch(from var($app-bg-id) calc(l + 0.12) c h);
+  }
+}
+
+.#{$app-cls-root} {
+  font-family: $app-using-font;
+  --back-top-right: 24px;
+  .bili-video-card a:not(.disable-hover):hover {
+    color: var($app-color-primary-id) !important;
+  }
+}
+@media (max-width: 1440px) {
+  .#{$app-cls-root} {
+    --back-top-right: 16px;
+  }
+}
+
 .primary-btn:disabled {
   &:active,
   &:hover {
@@ -41,3 +80,28 @@ body button:where(.ant-switch) {
     outline: unset;
   }
 }
+
+/**
+B站自带 css, 影响了 solid button :focus 样式
+body button:focus, body button:active {
+  background-color: transparent;
+  outline: none;
+}
+ */
+body .ant-btn.ant-btn-variant-solid {
+  &:focus,
+  &:active {
+    color: var(--ant-button-primary-color);
+    background: var(--ant-color-primary);
+  }
+}
+
+// @history
+//  1. B站默认样式 color: inherited, 导致显示黑色
+//  2. 太广, fallback 到单独覆盖 https://github.com/magicdawn/Bilibili-Gate/issues/141
+// .#{$app-cls-root} a:where(:not(.ant-btn)) {
+//   color: var(--ant-color-link);
+//   &:visited {
+//     color: var(--ant-color-link);
+//   }
+// }

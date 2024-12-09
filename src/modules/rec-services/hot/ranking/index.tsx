@@ -1,5 +1,5 @@
 import { REQUEST_FAIL_MSG } from '$common'
-import { flexVerticalCenterStyle } from '$common/emotion-css'
+import { buttonOpenCss, flexVerticalCenterStyle, usePopoverBorderColor } from '$common/emotion-css'
 import { useOnRefreshContext } from '$components/RecGrid/useRefresh'
 import { HelpInfo } from '$components/_base/HelpInfo'
 import { colorPrimaryValue } from '$components/css-vars'
@@ -7,12 +7,12 @@ import type { RankingItemExtend } from '$define'
 import { EApiType } from '$define/index.shared'
 import { usePopupContainer } from '$modules/rec-services/_base'
 import { isWebApiSuccess, request } from '$request'
-import { toast } from '$utility'
+import toast from '$utility/toast'
 import { proxyWithGmStorage } from '$utility/valtio'
+import { css } from '@emotion/react'
 import { Button, Popover } from 'antd'
 import { useSnapshot } from 'valtio'
 import { QueueStrategy, type IService } from '../../_base'
-import type { RankingItem } from './api'
 import {
   RANKING_CATEGORIES,
   RANKING_CATEGORIES_GROUPDED,
@@ -21,6 +21,7 @@ import {
   type Category,
   type CategorySlug,
 } from './category'
+import type { RankingItem } from './types'
 
 export class RankingRecService implements IService {
   loaded = false
@@ -86,17 +87,9 @@ if (!RANKING_CATEGORIES.map((x) => x.slug).includes(rankingStore.slug)) {
 
 function RankingUsageInfo() {
   const { ref, getPopupContainer } = usePopupContainer()
-
-  const [open, setOpen] = useState(false)
-  const hide = useCallback(() => setOpen(false), [])
-  const onOpenChange = useCallback((newOpen: boolean) => {
-    setOpen(newOpen)
-  }, [])
-
+  const onRefresh = useOnRefreshContext()
   const { slug } = useSnapshot(rankingStore)
   const category = useMemo(() => RANKING_CATEGORIES_MAP[slug], [slug])
-
-  const onRefresh = useOnRefreshContext()
 
   const renderCategoryList = (
     list: Category[],
@@ -121,7 +114,7 @@ function RankingUsageInfo() {
             css`
               margin-bottom: 8px;
               color: #fff;
-              background-color: ${colorPrimaryValue};
+              background-color: oklch(from ${colorPrimaryValue} calc(l * 0.8) calc(c / 2) h);
               padding: 5px 0;
               padding-left: 6px;
               border-radius: 5px;
@@ -153,7 +146,7 @@ function RankingUsageInfo() {
                     `,
                 ]}
                 onClick={(e) => {
-                  hide()
+                  setPopoverOpen(false)
                   rankingStore.slug = c.slug as CategorySlug
                   onRefresh?.()
                 }}
@@ -167,25 +160,27 @@ function RankingUsageInfo() {
     )
   }
 
-  return (
-    <div ref={ref}>
-      <Popover
-        arrow={false}
-        open={open}
-        onOpenChange={onOpenChange}
-        placement='bottomLeft'
-        getPopupContainer={getPopupContainer}
-        overlayInnerStyle={{ border: `1px solid ${colorPrimaryValue}` }}
-        content={
-          <>
-            {renderCategoryList(RANKING_CATEGORIES_GROUPDED.normal, 'normal', '视频')}
-            {renderCategoryList(RANKING_CATEGORIES_GROUPDED.cinema, 'cinema', '影视')}
-            {renderCategoryList(RANKING_CATEGORIES_GROUPDED.bangumi, 'bangumi', '番剧')}
-          </>
-        }
-      >
-        <Button>{category.name}</Button>
-      </Popover>
-    </div>
+  const popoverContent = (
+    <>
+      {renderCategoryList(RANKING_CATEGORIES_GROUPDED.normal, 'normal', '视频')}
+      {renderCategoryList(RANKING_CATEGORIES_GROUPDED.cinema, 'cinema', '影视')}
+      {renderCategoryList(RANKING_CATEGORIES_GROUPDED.bangumi, 'bangumi', '番剧')}
+    </>
   )
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const popover = (
+    <Popover
+      arrow={false}
+      open={popoverOpen}
+      onOpenChange={setPopoverOpen}
+      placement='bottomLeft'
+      getPopupContainer={getPopupContainer}
+      content={popoverContent}
+      overlayInnerStyle={{ border: `1px solid ${usePopoverBorderColor()}` }}
+    >
+      <Button css={[popoverOpen && buttonOpenCss]}>{category.name}</Button>
+    </Popover>
+  )
+
+  return <div ref={ref}>{popover}</div>
 }

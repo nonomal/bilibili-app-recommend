@@ -1,32 +1,36 @@
 import { flexCenterStyle } from '$common/emotion-css'
 import { AntdTooltip } from '$components/_base/antd-custom'
-import { colorPrimaryValue } from '$components/css-vars'
+import { borderColorValue, colorPrimaryValue } from '$components/css-vars'
 import { getUserNickname } from '$modules/bilibili/user/nickname'
+import { formatSpaceUrl } from '$modules/rec-services/dynamic-feed/shared'
 import {
-  settings,
-  updateSettings,
+  getSettingsInnerArray,
+  updateSettingsInnerArray,
   useSettingsSnapshot,
-  type ListSettingsKey,
+  type ListSettingsPath,
 } from '$modules/settings'
-import { AntdMessage } from '$utility'
+import { antMessage } from '$utility/antd'
+import { css } from '@emotion/react'
 import { Empty, Input } from 'antd'
 import { uniq } from 'es-toolkit'
+import { get } from 'es-toolkit/compat'
 import type { ComponentPropsWithoutRef } from 'react'
 import IconParkOutlineCloseSmall from '~icons/icon-park-outline/close-small'
 
 const { Search } = Input
 
 export function EditableListSettingItem({
-  configKey,
+  configPath,
   searchProps,
   disabled,
 }: {
-  configKey: ListSettingsKey
+  configPath: ListSettingsPath
   searchProps?: ComponentProps<typeof Search>
   disabled?: boolean
 }) {
-  let list = useSettingsSnapshot()[configKey] as string[]
-  list = useMemo(() => uniq(list).toReversed(), [list])
+  const snap = useSettingsSnapshot()
+  const rawList = get(snap, configPath) as string[]
+  const list = useMemo(() => uniq(rawList).toReversed(), [rawList])
 
   return (
     <>
@@ -42,17 +46,17 @@ export function EditableListSettingItem({
         onSearch={(val, e) => {
           if (!val) return
 
-          const set = new Set<string>([...settings[configKey]])
-          if (!set.has(val)) {
-            set.add(val)
-          } else {
-            AntdMessage.warning(`${val} 已存在`)
+          // exists check
+          const set = new Set(getSettingsInnerArray(configPath))
+          if (set.has(val)) {
+            antMessage.warning(`${val} 已存在`)
+            return
           }
 
-          updateSettings({ [configKey]: Array.from(set) })
+          // add
+          updateSettingsInnerArray(configPath, { add: [val] })
 
-          // clear
-          // 非受控组件, 有内部状态, 不能简单设置 input.value
+          // clear: 非受控组件, 有内部状态, 不能简单设置 input.value
           if (e?.target) {
             const el = e.target as HTMLElement
             const clearBtn = el
@@ -68,11 +72,8 @@ export function EditableListSettingItem({
           css`
             min-height: 82px;
             border-radius: 6px;
-            border: 1px solid #eee;
+            border: 1px solid ${borderColorValue};
             margin-top: 3px;
-            body.dark & {
-              border-color: #333;
-            }
           `,
           disabled &&
             css`
@@ -105,12 +106,10 @@ export function EditableListSettingItem({
                   key={t}
                   tag={t}
                   onDelete={(tag) => {
-                    const s = new Set([...settings[configKey]])
-                    s.delete(tag)
-                    updateSettings({ [configKey]: Array.from(s) })
+                    updateSettingsInnerArray(configPath, { remove: [tag] })
                   }}
                   renderTag={
-                    configKey === 'filterByAuthorNameKeywords'
+                    configPath === 'filter.byAuthor.keywords'
                       ? (tag) => <UpTagItemDisplay tag={tag} />
                       : undefined
                   }
@@ -140,7 +139,7 @@ type TagItemDisplayProps = {
   onDelete?: (tag: string) => void
 } & Omit<ComponentPropsWithoutRef<'div'>, 'children'>
 
-const TagItemDisplay = forwardRef<HTMLDivElement, TagItemDisplayProps>(
+export const TagItemDisplay = forwardRef<HTMLDivElement, TagItemDisplayProps>(
   ({ tag, renderTag, onDelete, ...restProps }, ref) => {
     return (
       <div
@@ -151,10 +150,7 @@ const TagItemDisplay = forwardRef<HTMLDivElement, TagItemDisplayProps>(
             border-radius: 5px;
             padding: 2px 6px;
             position: relative;
-            border: 1px solid #ddd;
-            body.dark & {
-              border-color: #333;
-            }
+            border: 1px solid ${borderColorValue};
 
             display: inline-flex;
             align-items: center;
@@ -186,22 +182,20 @@ const TagItemDisplay = forwardRef<HTMLDivElement, TagItemDisplayProps>(
   },
 )
 
-function UpTagItemDisplay({ tag }: { tag: string }) {
+export function UpTagItemDisplay({ tag }: { tag: string }) {
   const regMidWithRemark = /^(?<mid>\d+)\((?<remark>[\S ]+)\)$/
   const regMid = /^\d+$/
 
-  const mid = useMemo(() => {
+  const { mid, remark } = useMemo<{ mid?: string; remark?: string }>(() => {
     if (regMidWithRemark.test(tag)) {
-      const mid = regMidWithRemark.exec(tag)?.groups?.mid
-      return mid
+      const groups = regMidWithRemark.exec(tag)?.groups
+      const mid = groups?.mid
+      const remark = groups?.remark
+      return { mid, remark }
     } else if (regMid.test(tag)) {
-      return tag
-    }
-  }, [tag])
-
-  const remark = useMemo(() => {
-    if (regMidWithRemark.test(tag)) {
-      return regMidWithRemark.exec(tag)?.groups?.remark
+      return { mid: tag }
+    } else {
+      return {}
     }
   }, [tag])
 
@@ -214,7 +208,10 @@ function UpTagItemDisplay({ tag }: { tag: string }) {
     })()
   }, [mid])
 
-  const label = mid ? nicknameByMid || remark || mid : tag
+  const label = mid
+    ? //
+      nicknameByMid || remark || mid
+    : tag
 
   const tooltip = (
     <>
@@ -254,7 +251,7 @@ function UpTagItemDisplay({ tag }: { tag: string }) {
         >
           {mid && <IconRadixIconsPerson {...size(12)} className='mr-2' />}
           {mid ? (
-            <a href={`https://space.bilibili.com/${mid}`} target='_blank'>
+            <a href={formatSpaceUrl(mid)} target='_blank' style={{ color: 'inherit' }}>
               {label}
             </a>
           ) : (

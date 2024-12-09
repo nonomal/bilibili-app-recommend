@@ -1,11 +1,11 @@
 import { APP_CLS_ROOT, OPERATION_FAIL_MSG } from '$common'
 import { BaseModal, BaseModalStyle, ModalClose } from '$components/_base/BaseModal'
-import { colorPrimaryValue } from '$components/css-vars'
+import { borderColorValue, colorPrimaryValue } from '$components/css-vars'
 import type { AppRecItem, AppRecItemExtend } from '$define'
-import { DislikeIcon } from '$modules/icon'
-import { AntdMessage } from '$utility'
+import { IconForDislike, IconForInfo } from '$modules/icon'
+import { antMessage } from '$utility/antd'
 import { toastRequestFail } from '$utility/toast'
-import { Info } from '@icon-park/react'
+import { css } from '@emotion/react'
 import { useLockFn, useRequest, useUpdateLayoutEffect } from 'ahooks'
 import { Spin } from 'antd'
 import { clsx } from 'clsx'
@@ -64,13 +64,13 @@ function ModalDislike({ show, onHide, item }: IProps) {
     }
 
     if (success) {
-      AntdMessage.success('已标记不想看')
+      antMessage.success('已标记不想看')
       dislikedIds.set(item.param, { ...reason })
       await delay(100)
       onHide()
     } else {
       // fail
-      AntdMessage.error(message || OPERATION_FAIL_MSG)
+      antMessage.error(message || OPERATION_FAIL_MSG)
     }
   })
 
@@ -143,7 +143,7 @@ function ModalDislike({ show, onHide, item }: IProps) {
     >
       <div css={BaseModalStyle.modalHeader}>
         <div css={BaseModalStyle.modalTitle}>
-          <DislikeIcon className='size-25' />
+          <IconForDislike className='size-25' />
           <span className='m-inline-5'>我不想看</span>
           <span
             css={css`
@@ -232,12 +232,12 @@ function ModalDislike({ show, onHide, item }: IProps) {
           `}
         >
           <div className='tips' css={S.tips}>
-            <Info className='mr-5 size-15' />
+            <IconForInfo className='mr-5 size-15' />
             使用删除键打开弹窗, 数字键选择, Esc 关闭
           </div>
           {activeReasonName && (
             <div className='tips' css={S.tips}>
-              <Info className='mr-5 size-15' />
+              <IconForInfo className='mr-5 size-15' />
               已选择「{activeReasonName}」, 回车键提交
             </div>
           )}
@@ -256,12 +256,7 @@ const S = {
     position: relative;
 
     border-radius: 4px;
-    border: 2px solid #eee;
-
-    /* https://github.com/emotion-js/emotion/issues/2836 */
-    * :where(body.dark) & {
-      border-color: #333;
-    }
+    border: 2px solid ${borderColorValue};
 
     padding-top: 5px;
     padding-bottom: 5px;

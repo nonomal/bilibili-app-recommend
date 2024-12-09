@@ -3,8 +3,9 @@ import { useLessFrequentFn } from '$common/hooks/useLessFrequentFn'
 import { AntdApp } from '$components/AntdApp'
 import { colorPrimaryValue } from '$components/css-vars'
 import { openNewTab } from '$modules/gm'
+import { settings } from '$modules/settings'
 import createEmotion from '@emotion/css/create-instance'
-import { Global } from '@emotion/react'
+import { css, Global } from '@emotion/react'
 import { useHover } from 'ahooks'
 import { App } from 'antd'
 import { once } from 'es-toolkit'
@@ -60,9 +61,9 @@ export function PipWindowContent({ newHref, pipWindow }: { pipWindow: Window; ne
 
   const hovering = useHover(pipWindow.document.documentElement)
 
-  // locked initial value
+  // use settings value
   const [locked, setLocked] = useState(() => {
-    return true
+    return settings.pipWindowDefaultLocked
   })
 
   return (
