@@ -3,7 +3,7 @@ import { EApiType } from '$define/index.shared'
 import { isWebApiSuccess, request } from '$request'
 import toast from '$utility/toast'
 import { uniqBy } from 'es-toolkit'
-import { QueueStrategy, type ITabService } from './_base'
+import { BaseTabService } from './_base'
 
 /**
  * 使用 web api 获取推荐
@@ -12,29 +12,78 @@ import { QueueStrategy, type ITabService } from './_base'
 let _id = 0
 const uniqId = () => Date.now() + _id++
 
-export class PcRecService implements ITabService {
+export class PcRecService extends BaseTabService<PcRecItemExtend> {
   static PAGE_SIZE = 14
+  usageInfo = undefined
 
   constructor(public isKeepFollowOnly: boolean) {
+    super(PcRecService.PAGE_SIZE)
     this.isKeepFollowOnly = isKeepFollowOnly
   }
 
-  page = 0
-  hasMore = true
-  usageInfo = undefined
-
-  qs = new QueueStrategy<PcRecItemExtend>(PcRecService.PAGE_SIZE)
-  restore(): void {
-    this.qs.restore()
-  }
-  async loadMore() {
-    if (!this.hasMore) return
-    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
+  override loadMoreItems(abortSignal: AbortSignal): Promise<PcRecItemExtend[] | undefined> {
     const times = this.isKeepFollowOnly ? 5 : 2
-    return this.getRecommendTimes(times)
+    return this.getRecommendTimes(times, abortSignal)
   }
 
-  private async getRecommend(signal?: AbortSignal) {
+  // for filter
+  async loadMoreBatch(times: number, abortSignal: AbortSignal) {
+    if (!this.hasMore) return
+    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue(times)
+    return this.qs.doReturnItems(await this.getRecommendTimes(times, abortSignal))
+  }
+
+  private async getRecommendTimes(times: number, abortSignal: AbortSignal) {
+    let list: PcRecItem[] = []
+
+    const parallel = async () => {
+      list = (
+        await Promise.all(new Array(times).fill(0).map(() => this.getRecommend(abortSignal)))
+      ).flat()
+    }
+    const sequence = async () => {
+      for (let x = 1; x <= times; x++) {
+        list = list.concat(await this.getRecommend(abortSignal))
+      }
+    }
+
+    await (true ? parallel : sequence)()
+
+    list = list.filter((item) => {
+      const goto = item.goto as string
+
+      // ad
+      if (goto === 'ad') return false
+      if (goto.includes('ad')) return false
+
+      // can't handle for now
+      if (goto === 'live') return false
+
+      return true
+    })
+
+    list = uniqBy(list, (item) => item.id)
+
+    // 推荐理由补全
+    list.forEach((item) => {
+      if (item.rcmd_reason?.reason_type === 1) {
+        item.rcmd_reason.content ||= '已关注'
+      }
+    })
+
+    const _list = list.map((item) => {
+      return {
+        ...item,
+        uniqId: item.id + '-' + crypto.randomUUID(),
+        api: EApiType.PcRecommend,
+      } as PcRecItemExtend
+    })
+    return _list
+  }
+
+  page = 0
+  override hasMoreExceptQueue = true
+  private async getRecommend(abortSignal: AbortSignal) {
     const curpage = ++this.page // this has parallel call, can not ++ after success
 
     let url: string
@@ -82,13 +131,13 @@ export class PcRecService implements ITabService {
     //   //   'av_1251147478,av_1801357236,av_1002155115,av_1751950975,ad_n_5614,av_1402131443,av_n_1901089350,av_n_1851727201,av_n_1751712626,av_n_1251359542',
     // }
 
-    const res = await request.get(url, { signal, params })
+    const res = await request.get(url, { signal: abortSignal, params })
     const json = res.data as PcRecommendJson
 
     if (!isWebApiSuccess(json)) {
       /** code: -62011, data: null, message: "暂时没有更多内容了", ttl: 1 */
       if (json.code === -62011 && json.message === '暂时没有更多内容了') {
-        this.hasMore = false
+        this.hasMoreExceptQueue = false
         return []
       }
     }
@@ -98,55 +147,5 @@ export class PcRecService implements ITabService {
     }
     const items = json.data?.item || []
     return items
-  }
-
-  async getRecommendTimes(times: number, signal?: AbortSignal) {
-    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
-
-    let list: PcRecItem[] = []
-
-    const parallel = async () => {
-      list = (
-        await Promise.all(new Array(times).fill(0).map(() => this.getRecommend(signal)))
-      ).flat()
-    }
-    const sequence = async () => {
-      for (let x = 1; x <= times; x++) {
-        list = list.concat(await this.getRecommend(signal))
-      }
-    }
-
-    await (true ? parallel : sequence)()
-
-    list = list.filter((item) => {
-      const goto = item.goto as string
-
-      // ad
-      if (goto === 'ad') return false
-      if (goto.includes('ad')) return false
-
-      // can't handle for now
-      if (goto === 'live') return false
-
-      return true
-    })
-
-    list = uniqBy(list, (item) => item.id)
-
-    // 推荐理由补全
-    list.forEach((item) => {
-      if (item.rcmd_reason?.reason_type === 1) {
-        item.rcmd_reason.content ||= '已关注'
-      }
-    })
-
-    const _list = list.map((item) => {
-      return {
-        ...item,
-        uniqId: item.id + '-' + crypto.randomUUID(),
-        api: EApiType.PcRecommend,
-      } as PcRecItemExtend
-    })
-    return this.qs.doReturnItems(_list)
   }
 }

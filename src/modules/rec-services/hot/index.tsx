@@ -13,8 +13,8 @@ import { Button, Dropdown } from 'antd'
 import { size } from 'polished'
 import type { ReactNode } from 'react'
 import { useSnapshot } from 'valtio'
-import type { IService, ITabService } from '../_base'
-import { QueueStrategy, usePopupContainer } from '../_base'
+import type { IService } from '../_base'
+import { BaseTabService, usePopupContainer } from '../_base'
 import { PopularGeneralRecService } from './popular-general'
 import { PopularWeeklyRecService } from './popular-weekly'
 import { RankingRecService } from './ranking'
@@ -67,31 +67,23 @@ const HotSubTabConfig = {
   },
 }
 
-export class HotRecService implements ITabService {
+export class HotRecService extends BaseTabService<RecItemTypeOrSeparator> {
+  override get usageInfo() {
+    return <HotUsageInfo>{this.service.usageInfo}</HotUsageInfo>
+  }
+  override get hasMoreExceptQueue() {
+    return this.service.hasMore
+  }
+  override loadMoreItems(abortSignal: AbortSignal) {
+    return this.service.loadMore(abortSignal)
+  }
+
   subtab: EHotSubTab
   service: IService
   constructor() {
+    super(20)
     this.subtab = hotStore.subtab
     this.service = new ServiceMap[hotStore.subtab]()
-  }
-
-  get hasMore() {
-    return !!this.qs.bufferQueue.length || this.service.hasMore
-  }
-
-  qs = new QueueStrategy<RecItemTypeOrSeparator>(20)
-  restore(): void {
-    this.qs.restore()
-  }
-
-  async loadMore(abortSignal: AbortSignal): Promise<RecItemTypeOrSeparator[] | undefined> {
-    if (!this.hasMore) return
-    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
-    return this.qs.doReturnItems(await this.service.loadMore(abortSignal))
-  }
-
-  get usageInfo() {
-    return <HotUsageInfo>{this.service.usageInfo}</HotUsageInfo>
   }
 }
 

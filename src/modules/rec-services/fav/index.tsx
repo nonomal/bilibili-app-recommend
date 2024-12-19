@@ -1,7 +1,7 @@
 import type { FavItemExtend, ItemsSeparator } from '$define'
 import { settings } from '$modules/settings'
 import { snapshot } from 'valtio'
-import { QueueStrategy, type ITabService } from '../_base'
+import { BaseTabService } from '../_base'
 import type { FavItemsOrder } from './fav-enum'
 import { FAV_PAGE_SIZE } from './service/_base'
 import { FavAllService } from './service/fav-all'
@@ -33,16 +33,17 @@ export function getFavServiceConfig() {
 
 export interface IFavInnerService {
   hasMore: boolean
-  loadMore(abortSignal?: AbortSignal): Promise<(FavItemExtend | ItemsSeparator)[] | undefined>
+  loadMore(abortSignal: AbortSignal): Promise<(FavItemExtend | ItemsSeparator)[] | undefined>
   usageInfo?: ReactNode
   extraUsageInfo?: ReactNode
 }
 
-export class FavRecService implements ITabService {
+export class FavRecService extends BaseTabService<FavItemExtend | ItemsSeparator> {
   static PAGE_SIZE = FAV_PAGE_SIZE
 
   innerService: IFavInnerService
   constructor(public config: FavServiceConfig) {
+    super(FavRecService.PAGE_SIZE)
     if (this.viewingAll) {
       this.innerService = new FavAllService(
         this.config.addSeparator,
@@ -75,25 +76,16 @@ export class FavRecService implements ITabService {
     return typeof this.config.selectedFavCollectionId === 'number'
   }
 
-  get hasMore() {
-    return !!this.qs.bufferQueue.length || this.innerService.hasMore
-  }
-
-  qs = new QueueStrategy<FavItemExtend | ItemsSeparator>(FavRecService.PAGE_SIZE)
-  restore(): void {
-    this.qs.restore()
-  }
-
-  async loadMore(abortSignal?: AbortSignal) {
-    if (!this.hasMore) return
-    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
-    return this.qs.doReturnItems(await this.innerService.loadMore(abortSignal))
-  }
-
-  get usageInfo(): ReactNode {
+  override get usageInfo(): ReactNode {
     const { usageInfo, extraUsageInfo } = this.innerService
     if (usageInfo) return usageInfo
     return <FavUsageInfo extraContent={extraUsageInfo} />
+  }
+  override get hasMoreExceptQueue() {
+    return this.innerService.hasMore
+  }
+  override loadMoreItems(abortSignal: AbortSignal) {
+    return this.innerService.loadMore(abortSignal)
   }
 
   // for remove card

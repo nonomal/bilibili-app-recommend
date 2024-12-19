@@ -7,7 +7,7 @@ import { gmrequest } from '$request'
 import { getHasLogined } from '$utility/cookie'
 import { randomInt, shuffle, uniqBy } from 'es-toolkit'
 import { times } from 'es-toolkit/compat'
-import { QueueStrategy, type IService, type ITabService } from './_base'
+import { BaseTabService, type IService } from './_base'
 import {
   DynamicFeedRecService,
   getDynamicFeedServiceConfig,
@@ -38,24 +38,19 @@ export function getAppRecServiceConfig() {
   }
 }
 
-export class AppRecService implements ITabService {
-  static PAGE_SIZE = 20
+export class AppRecService extends BaseTabService<RecItemType> {
+  static readonly PAGE_SIZE = 20
+
+  usageInfo = undefined
 
   innerService: AppRecInnerService
   allServices: IService[] = []
   otherTabServices: IService[] = []
-
   constructor(public config: AppRecServiceConfig) {
+    super(AppRecService.PAGE_SIZE)
     this.innerService = new AppRecInnerService(this.config.deviceParamForApi)
     this.allServices = [this.innerService]
     this.initOtherTabServices()
-  }
-
-  usageInfo?: globalThis.ReactNode
-
-  qs = new QueueStrategy<RecItemType>(AppRecInnerService.PAGE_SIZE)
-  restore() {
-    this.qs.restore()
   }
 
   initOtherTabServices() {
@@ -116,7 +111,7 @@ export class AppRecService implements ITabService {
     this.allServices = shuffle(allServices)
   }
 
-  get hasMore() {
+  override get hasMore() {
     return (
       !!this.qs.bufferQueue.length ||
       this.innerService.hasMore ||
@@ -124,7 +119,12 @@ export class AppRecService implements ITabService {
     )
   }
 
-  async loadMore(abortSignal: AbortSignal) {
+  hasMoreExceptQueue = true
+  loadMoreItems(abortSignal: AbortSignal): Promise<RecItemType[] | undefined> {
+    throw new Error('Method not implemented.')
+  }
+
+  override async loadMore(abortSignal: AbortSignal) {
     if (!this.hasMore) return
 
     // fill if needed
@@ -145,10 +145,11 @@ export class AppRecService implements ITabService {
     return this.qs.sliceFromQueue()
   }
 
-  async getRecommendTimes(times: number) {
+  // for filter
+  async loadMoreBatch(abortSignal: AbortSignal, times: number) {
     if (!this.hasMore) return
     if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue(times)
-    return this.qs.doReturnItems(await this.innerService.getRecommendTimes(times))
+    return this.qs.doReturnItems(await this.innerService.getRecommendTimes(abortSignal, times))
   }
 }
 
@@ -198,12 +199,12 @@ class AppRecInnerService implements IService {
     return items
   }
 
-  loadMore(abortSignal?: AbortSignal, times = 2) {
-    return this.getRecommendTimes(times)
+  loadMore(abortSignal: AbortSignal, times = 2) {
+    return this.getRecommendTimes(abortSignal, times)
   }
 
   // 一次不够, 多来几次
-  async getRecommendTimes(times: number) {
+  async getRecommendTimes(abortSignal: AbortSignal, times: number) {
     let list: AppRecItem[] = []
 
     const parallel = async () => {

@@ -56,7 +56,7 @@ export class FavCollectionService implements IFavInnerService {
   })
 
   async loadMore(
-    abortSignal?: AbortSignal,
+    abortSignal: AbortSignal,
   ): Promise<(FavItemExtend | ItemsSeparator)[] | undefined> {
     if (!this.hasMore) return
 
@@ -107,7 +107,7 @@ export class FavCollectionService implements IFavInnerService {
   // 合集返回的数据没有头像, 这里通过 space-acc-info 补全
   private async loadUserAvatarFromSpaceAccInfo(
     items: FavCollectionDetailMedia[],
-    abortSignal?: AbortSignal,
+    abortSignal: AbortSignal,
   ) {
     if (!items.length) return
 

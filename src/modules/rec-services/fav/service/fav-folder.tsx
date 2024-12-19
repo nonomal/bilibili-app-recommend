@@ -89,7 +89,7 @@ export class FavFolderService implements IFavInnerService {
     }
   }
 
-  async loadMore(abortSignal?: AbortSignal) {
+  async loadMore(abortSignal: AbortSignal) {
     if (!this.hasMore) return
 
     if (this.addSeparator && !this.separatorAdded) {
@@ -122,16 +122,16 @@ export class FavFolderService implements IFavInnerService {
 
   private allItemsLoaded = false
   private bufferQueue: FavItemExtend[] = []
-  private async loadAllItems(abortSignal?: AbortSignal) {
+  private async loadAllItems(abortSignal: AbortSignal) {
     const allItems = await this.fetchAllItemsWithCache(abortSignal)
     this.bufferQueue = handleItemsOrder(allItems, this.itemsOrder)
     this.allItemsLoaded = true
     this.runSideEffects()
   }
-  private __fetchAllItems = async (abortSignal?: AbortSignal) => {
+  private __fetchAllItems = async (abortSignal: AbortSignal = new AbortController().signal) => {
     const allItems: FavItemExtend[] = []
-    while (this.basicService.hasMore && !abortSignal?.aborted) {
-      const items = (await this.basicService.loadMore()) || []
+    while (this.basicService.hasMore && !abortSignal.aborted) {
+      const items = (await this.basicService.loadMore(abortSignal)) || []
       allItems.push(...items)
     }
     return allItems
@@ -176,7 +176,7 @@ export class FavFolderBasicService {
   info: FavFolderDetailInfo | undefined
   page = 0 // pages loaded
 
-  async loadMore(abortSignal?: AbortSignal): Promise<FavItemExtend[] | undefined> {
+  async loadMore(abortSignal: AbortSignal): Promise<FavItemExtend[] | undefined> {
     if (!this.hasMore) return
 
     // mtime(最近收藏)  view(最多播放) pubtime(最新投稿)

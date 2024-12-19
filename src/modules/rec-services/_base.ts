@@ -9,6 +9,34 @@ export type IService = {
 
 export type ITabService = IService & {
   restore(): void
+  usageInfo: ReactNode
+}
+
+export abstract class BaseTabService<T extends RecItemTypeOrSeparator = RecItemTypeOrSeparator>
+  implements ITabService
+{
+  abstract usageInfo: ReactNode
+  abstract hasMoreExceptQueue: boolean
+  abstract loadMoreItems(abortSignal: AbortSignal): Promise<T[] | undefined>
+
+  qs: QueueStrategy<T>
+  constructor(qsPageSize: number) {
+    this.qs = new QueueStrategy(qsPageSize)
+  }
+
+  get hasMore() {
+    return !!this.qs.bufferQueue.length || this.hasMoreExceptQueue
+  }
+
+  restore(): void {
+    this.qs.restore()
+  }
+
+  async loadMore(abortSignal: AbortSignal): Promise<T[] | undefined> {
+    if (!this.hasMore) return
+    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
+    return this.qs.doReturnItems(await this.loadMoreItems(abortSignal))
+  }
 }
 
 export class QueueStrategy<T = RecItemTypeOrSeparator> {

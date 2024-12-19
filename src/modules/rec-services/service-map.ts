@@ -2,7 +2,7 @@ import type { RefStateBox } from '$common/hooks/useRefState'
 import { ETab } from '$components/RecHeader/tab-enum'
 import { settings } from '$modules/settings'
 import { invariant } from 'es-toolkit'
-import type { ITabService } from './_base'
+import type { BaseTabService, ITabService } from './_base'
 import { AppRecService, getAppRecServiceConfig } from './app'
 import { DynamicFeedRecService, getDynamicFeedServiceConfig } from './dynamic-feed'
 import { FavRecService, getFavServiceConfig } from './fav'
@@ -37,7 +37,7 @@ export const createServiceMap = {
   [ETab.Fav]: () => new FavRecService(getFavServiceConfig()),
   [ETab.Hot]: () => new HotRecService(),
   [ETab.Live]: () => new LiveRecService(),
-} satisfies Record<ETab, (options: { existingService?: ITabService }) => ITabService>
+} satisfies Record<ETab, (options: { existingService?: BaseTabService }) => BaseTabService>
 
 export type ServiceMapKey = keyof typeof createServiceMap
 

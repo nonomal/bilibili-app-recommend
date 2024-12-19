@@ -54,7 +54,7 @@ export class FavAllService implements IFavInnerService {
     )
   }
 
-  async loadMore(abortSignal?: AbortSignal) {
+  async loadMore(abortSignal: AbortSignal) {
     if (!this.serviceCreated) await this.createServices()
     if (!this.hasMore) return
 
@@ -63,7 +63,7 @@ export class FavAllService implements IFavInnerService {
      */
     if (!this.useShuffle) {
       const service = this.allServices.find((s) => s.hasMore)
-      return service?.loadMore()
+      return service?.loadMore(abortSignal)
     }
 
     /**
@@ -76,7 +76,9 @@ export class FavAllService implements IFavInnerService {
       while (this.hasMoreInService && this.shuffleBufferQueue.length < FAV_PAGE_SIZE * 3) {
         const restServices = this.allServices.filter((s) => s.hasMore)
         const pickedServices = shuffle(restServices).slice(0, count)
-        const fetched = (await pmap(pickedServices, async (s) => (await s.loadMore()) || [], batch))
+        const fetched = (
+          await pmap(pickedServices, async (s) => (await s.loadMore(abortSignal)) || [], batch)
+        )
           .flat()
           .filter((x) => x.api !== EApiType.Separator)
         this.shuffleBufferQueue = shuffle([...this.shuffleBufferQueue, ...shuffle(fetched)])

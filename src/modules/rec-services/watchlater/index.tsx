@@ -8,7 +8,7 @@ import dayjs from 'dayjs'
 import { shuffle } from 'es-toolkit'
 import { proxy, useSnapshot } from 'valtio'
 import { proxySet } from 'valtio/utils'
-import { QueueStrategy, type IService, type ITabService } from '../_base'
+import { BaseTabService, QueueStrategy, type IService } from '../_base'
 import { getAllWatchlaterItemsV2, getWatchlaterItemFrom } from './api'
 import { type WatchlaterItem } from './types'
 import { WatchLaterUsageInfo } from './usage-info'
@@ -35,36 +35,32 @@ if (getHasLogined() && getUid()) {
   })()
 }
 
-export class WatchLaterRecService implements ITabService {
+export class WatchLaterRecService extends BaseTabService<WatchLaterItemExtend | ItemsSeparator> {
   static PAGE_SIZE = 10
 
   innerService: WatchlaterNormalOrderService | WatchlaterShuffleOrderService
-
   constructor(
     public useShuffle: boolean,
     prevShuffleBvids?: string[],
   ) {
+    super(WatchLaterRecService.PAGE_SIZE)
     this.innerService = settings.watchlaterUseShuffle
       ? new WatchlaterShuffleOrderService(prevShuffleBvids)
       : new WatchlaterNormalOrderService()
   }
 
+  get hasMoreExceptQueue() {
+    return this.innerService.hasMore
+  }
+
+  loadMoreItems(
+    abortSignal: AbortSignal,
+  ): Promise<(WatchLaterItemExtend | ItemsSeparator)[] | undefined> {
+    return this.innerService.loadMore(abortSignal)
+  }
+
   get usageInfo(): ReactNode {
     return this.innerService.usageInfo
-  }
-  get hasMore() {
-    return !!this.qs.bufferQueue.length || this.innerService.hasMore
-  }
-
-  qs = new QueueStrategy<WatchLaterItemExtend | ItemsSeparator>(WatchLaterRecService.PAGE_SIZE)
-  restore(): void {
-    this.qs.restore()
-  }
-
-  async loadMore(abortSignal: AbortSignal) {
-    if (!this.hasMore) return
-    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
-    return this.qs.doReturnItems(await this.innerService.loadMore(abortSignal))
   }
 
   // for remove watchlater card

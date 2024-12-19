@@ -93,7 +93,7 @@ async function fetchMinCount(count: number, fetcherOptions: FetcherOptions, filt
     if (usePcApi(tab)) {
       const service = servicesRegistry.val[tab]
       assertService(service, tab)
-      cur = (await service.getRecommendTimes(times, abortSignal)) || []
+      cur = (await service.loadMoreBatch(times, abortSignal)) || []
       hasMore = service.hasMore
     } else {
       const service = servicesRegistry.val[ETab.AppRecommend]
@@ -101,7 +101,7 @@ async function fetchMinCount(count: number, fetcherOptions: FetcherOptions, filt
       cur =
         (await (service.config.addOtherTabContents
           ? service.loadMore(abortSignal)
-          : service.getRecommendTimes(times))) || []
+          : service.loadMoreBatch(abortSignal, times))) || []
       hasMore = service.hasMore
     }
 

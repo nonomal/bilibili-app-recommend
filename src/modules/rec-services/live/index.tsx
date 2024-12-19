@@ -4,7 +4,7 @@ import { EApiType } from '$define/index.shared'
 import { isWebApiSuccess, request } from '$request'
 import toast from '$utility/toast'
 import dayjs from 'dayjs'
-import { QueueStrategy, type ITabService } from '../_base'
+import { BaseTabService } from '../_base'
 import { ELiveStatus } from './live-enum'
 import type { ListFollowingLiveJson } from './types/list-live'
 
@@ -21,39 +21,34 @@ export async function getLiveList(page: number) {
   return json
 }
 
-export class LiveRecService implements ITabService {
-  static PAGE_SIZE = 10
+export class LiveRecService extends BaseTabService<LiveItemExtend | ItemsSeparator> {
+  static PAGE_SIZE = 20
 
-  hasMoreInApi: boolean = true
-  page = 0
+  usageInfo = undefined
+  hasMoreExceptQueue = true
+
+  constructor() {
+    super(LiveRecService.PAGE_SIZE)
+  }
+
   loaded = false
-
-  liveCount: number = -1
+  liveCount = -1
+  page = 1
   totalPage = Infinity
-
   separatorAdded = false
 
-  qs = new QueueStrategy<LiveItemExtend | ItemsSeparator>(LiveRecService.PAGE_SIZE)
-  restore(): void {
-    this.qs.restore()
-  }
-  get hasMore() {
-    return !!this.qs.bufferQueue.length || this.hasMoreInApi
-  }
-
-  async loadMore() {
-    if (!this.hasMore) return
-    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
-
-    if (this.page + 1 > this.totalPage) {
-      this.hasMoreInApi = false
+  async loadMoreItems(
+    abortSignal: AbortSignal,
+  ): Promise<(LiveItemExtend | ItemsSeparator)[] | undefined> {
+    if (this.page > this.totalPage) {
+      this.hasMoreExceptQueue = false
       return
     }
 
-    const json = await getLiveList(this.page + 1)
+    const json = await getLiveList(this.page)
     if (!isWebApiSuccess(json)) {
       toast(json.message || REQUEST_FAIL_MSG)
-      this.hasMoreInApi = false
+      this.hasMoreExceptQueue = false
     }
 
     // success
@@ -78,7 +73,7 @@ export class LiveRecService implements ITabService {
       const lastStatus = last.live_status
       const lastLiveTime = last.record_live_time
       if (lastStatus !== ELiveStatus.Streaming && lastLiveTime && lastLiveTime < gateTime) {
-        this.hasMoreInApi = false
+        this.hasMoreExceptQueue = false
       }
     }
 
@@ -95,10 +90,6 @@ export class LiveRecService implements ITabService {
       })
     }
 
-    return this.qs.doReturnItems(ret)
-  }
-
-  get usageInfo() {
-    return null
+    return ret
   }
 }

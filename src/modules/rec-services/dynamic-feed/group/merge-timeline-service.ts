@@ -42,7 +42,7 @@ export class FollowGroupUpService {
     return data.items
   }
 
-  async fillQueue(minimalQueueSize: number, abortSignal?: AbortSignal) {
+  async fillQueue(minimalQueueSize: number, abortSignal: AbortSignal) {
     while (
       !abortSignal?.aborted &&
       this.hasMoreForApi &&
@@ -72,7 +72,7 @@ export class FollowGroupMergeTimelineService {
     return this.upServices.some((s) => s.hasMore)
   }
 
-  async loadMore(abortSignal?: AbortSignal): Promise<DynamicFeedItem[]> {
+  async loadMore(abortSignal: AbortSignal): Promise<DynamicFeedItem[]> {
     if (!this.hasMore) return []
 
     // refill queues

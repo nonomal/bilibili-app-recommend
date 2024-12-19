@@ -7,7 +7,7 @@ import type { Nullable } from '$utility/type'
 import { parseDuration } from '$utility/video'
 import pmap from 'promise.map'
 import { snapshot } from 'valtio'
-import { QueueStrategy, type ITabService } from '../_base'
+import { BaseTabService, QueueStrategy } from '../_base'
 import { LiveRecService } from '../live'
 import { fetchVideoDynamicFeeds } from './api'
 import {
@@ -96,25 +96,12 @@ function isValidNumber(str: Nullable<string>) {
 
 const debug = baseDebug.extend('modules:rec-services:dynamic-feed')
 
-export class DynamicFeedRecService implements ITabService {
+export class DynamicFeedRecService extends BaseTabService<DynamicFeedItemExtend | LiveItemExtend> {
   static PAGE_SIZE = 15
 
-  offset: string = ''
-  page = 0 // pages loaded
-
-  liveRecService: LiveRecService | undefined
-
-  hasMoreDynFeed = true
-
-  get hasMoreStreamingLive() {
-    // has more streaming Live item
-    if (this.liveRecService?.hasMore && !this.liveRecService.separatorAdded) {
-      return true
-    }
-    return false
-  }
-
-  get hasMore() {
+  override usageInfo = (<DynamicFeedUsageInfo />)
+  override hasMoreExceptQueue = true
+  override get hasMore() {
     if (this.qs.bufferQueue.length) return true
 
     if (this.hasMoreStreamingLive) return true
@@ -123,11 +110,24 @@ export class DynamicFeedRecService implements ITabService {
       return this.whenViewSomeGroupMergeTimelineService.hasMore
     }
 
-    if (this.hasMoreDynFeed) return true
+    if (this.hasMoreExceptQueue) return true
+    return false
+  }
+
+  offset: string = ''
+  page = 0 // pages loaded
+
+  liveRecService: LiveRecService | undefined
+  get hasMoreStreamingLive() {
+    // has more streaming Live item
+    if (this.liveRecService?.hasMore && !this.liveRecService.separatorAdded) {
+      return true
+    }
     return false
   }
 
   constructor(public config: DynamicFeedServiceConfig) {
+    super(DynamicFeedRecService.PAGE_SIZE)
     // config live
     if (this.config.showLiveInDynamicFeed) {
       const filterEmpty =
@@ -234,10 +234,10 @@ export class DynamicFeedRecService implements ITabService {
 
   private _queueForSearchCache: QueueStrategy<DynamicFeedItem> | undefined
 
-  async _loadMore(signal?: AbortSignal) {
+  override async loadMoreItems(abortSignal: AbortSignal) {
     // load live first
     if (this.liveRecService && this.hasMoreStreamingLive) {
-      const items = (await this.liveRecService.loadMore()) || []
+      const items = (await this.liveRecService.loadMore(abortSignal)) || []
       const hasSep = items.some((x) => x.api === EApiType.Separator)
       if (!hasSep) {
         return items.filter((x) => x.api !== EApiType.Separator)
@@ -291,26 +291,26 @@ export class DynamicFeedRecService implements ITabService {
       // slice
       rawItems = this._queueForSearchCache.sliceFromQueue(this.page + 1) || []
       this.page++
-      this.hasMoreDynFeed = !!this._queueForSearchCache.bufferQueue.length
+      this.hasMoreExceptQueue = !!this._queueForSearchCache.bufferQueue.length
       // offset not needed
     }
 
     // a group with manual merge-timeline service
     else if (this.viewingSomeGroup && this.whenViewSomeGroupMergeTimelineService) {
-      rawItems = await this.whenViewSomeGroupMergeTimelineService.loadMore(signal)
+      rawItems = await this.whenViewSomeGroupMergeTimelineService.loadMore(abortSignal)
     }
 
     // normal
     else {
       // 未登录会直接 throw err
       const data = await fetchVideoDynamicFeeds({
-        signal,
+        abortSignal,
         page: this.page + 1, // ++this.page, starts from 1, 实测 page 没啥用, 分页基于 offset
         offset: this.offset,
         upMid: this.upMid,
       })
       this.page++
-      this.hasMoreDynFeed = data.has_more
+      this.hasMoreExceptQueue = data.has_more
       this.offset = data.offset
       rawItems = data.items
 
@@ -321,7 +321,7 @@ export class DynamicFeedRecService implements ITabService {
         const minId = this.config.minId
         const idx = rawItems.findIndex((x) => BigInt(x.id_str) <= minId)
         if (idx !== -1) {
-          this.hasMoreDynFeed = false
+          this.hasMoreExceptQueue = false
           rawItems = rawItems.slice(0, idx + 1) // include minId
         }
       }
@@ -329,7 +329,7 @@ export class DynamicFeedRecService implements ITabService {
         const minTs = this.config.minTs
         const idx = rawItems.findIndex((x) => x.modules.module_author.pub_ts <= minTs)
         if (idx !== -1) {
-          this.hasMoreDynFeed = false
+          this.hasMoreExceptQueue = false
           rawItems = rawItems.slice(0, idx + 1) // include minTs
         }
       }
@@ -465,19 +465,5 @@ export class DynamicFeedRecService implements ITabService {
     }
 
     return items
-  }
-
-  qs = new QueueStrategy<DynamicFeedItemExtend | LiveItemExtend>(DynamicFeedRecService.PAGE_SIZE)
-  restore(): void {
-    this.qs.restore()
-  }
-  async loadMore(signal?: AbortSignal) {
-    if (!this.hasMore) return
-    if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
-    return this.qs.doReturnItems(await this._loadMore(signal))
-  }
-
-  get usageInfo(): ReactNode {
-    return <DynamicFeedUsageInfo />
   }
 }

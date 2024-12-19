@@ -8,12 +8,12 @@ export async function fetchVideoDynamicFeeds({
   offset,
   page,
   upMid,
-  signal,
+  abortSignal,
 }: {
   offset?: string
   page: number
   upMid?: UpMidType
-  signal?: AbortSignal
+  abortSignal?: AbortSignal
 }) {
   const params: Record<string, number | string> = {
     'timezone_offset': '-480',
@@ -33,7 +33,7 @@ export async function fetchVideoDynamicFeeds({
   }
 
   const res = await request.get('/x/polymer/web-dynamic/v1/feed/all', {
-    signal,
+    signal: abortSignal,
     params,
   })
   const json = res.data as DynamicFeedJson
