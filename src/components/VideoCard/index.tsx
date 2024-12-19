@@ -4,10 +4,11 @@ import { useMittOn } from '$common/hooks/useMitt'
 import { useRefStateBox } from '$common/hooks/useRefState'
 import { useDislikedReason } from '$components/ModalDislike'
 import type { OnRefresh } from '$components/RecGrid/useRefresh'
-import type { ETab } from '$components/RecHeader/tab-enum'
+import { ETab } from '$components/RecHeader/tab-enum'
 import { Picture } from '$components/_base/Picture'
 import { borderColorValue } from '$components/css-vars'
 import {
+  isAppRecommend,
   isLive,
   isRanking,
   isWatchlater,
@@ -50,7 +51,13 @@ import { defaultEmitter } from './index.shared'
 import type { IVideoCardData } from './process/normalize'
 import { normalizeCardData } from './process/normalize'
 import { StatItemDisplay } from './stat-item'
-import { ChargeOnlyTag, LiveBadge, RankingNumMark, isChargeOnlyVideo } from './top-marks'
+import {
+  ApiTypeTag,
+  ChargeOnlyTag,
+  isChargeOnlyVideo,
+  LiveBadge,
+  RankingNumMark,
+} from './top-marks'
 import { useDislikeRelated } from './use/useDislikeRelated'
 import { useLinkTarget, useOpenRelated } from './use/useOpenRelated'
 import { usePreviewAnimation } from './use/usePreviewAnimation'
@@ -395,6 +402,11 @@ const VideoCardInner = memo(function VideoCardInner({
 
       {/* 直播: 直播中 */}
       {_isStreaming && <LiveBadge />}
+
+      {/* App推荐: 来自其他 Tab 的内容 */}
+      {tab === ETab.AppRecommend && !isAppRecommend(item) && !isLive(item) && (
+        <ApiTypeTag item={item} />
+      )}
     </>
   )
 

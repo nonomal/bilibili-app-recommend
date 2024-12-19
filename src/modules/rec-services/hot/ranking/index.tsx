@@ -114,7 +114,8 @@ function RankingUsageInfo() {
             css`
               margin-bottom: 8px;
               color: #fff;
-              background-color: oklch(from ${colorPrimaryValue} calc(l * 0.8) calc(c / 2) h);
+              /* background-color: oklch(from ${colorPrimaryValue} calc(l * 0.8) c h); */
+              background-color: ${colorPrimaryValue};
               padding: 5px 0;
               padding-left: 6px;
               border-radius: 5px;
