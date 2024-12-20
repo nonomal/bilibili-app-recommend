@@ -17,7 +17,7 @@ export abstract class BaseTabService<T extends RecItemTypeOrSeparator = RecItemT
 {
   abstract usageInfo: ReactNode
   abstract hasMoreExceptQueue: boolean
-  abstract loadMoreItems(abortSignal: AbortSignal): Promise<T[] | undefined>
+  abstract fetchMore(abortSignal: AbortSignal): Promise<T[] | undefined>
 
   qs: QueueStrategy<T>
   constructor(qsPageSize: number) {
@@ -35,7 +35,13 @@ export abstract class BaseTabService<T extends RecItemTypeOrSeparator = RecItemT
   async loadMore(abortSignal: AbortSignal): Promise<T[] | undefined> {
     if (!this.hasMore) return
     if (this.qs.bufferQueue.length) return this.qs.sliceFromQueue()
-    return this.qs.doReturnItems(await this.loadMoreItems(abortSignal))
+
+    // fill queue
+    const more = await this.fetchMore(abortSignal)
+    if (more?.length) this.qs.bufferQueue.push(...more)
+
+    // slice from queue
+    return this.qs.sliceFromQueue()
   }
 }
 

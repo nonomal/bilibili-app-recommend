@@ -84,7 +84,7 @@ export class FavRecService extends BaseTabService<FavItemExtend | ItemsSeparator
   override get hasMoreExceptQueue() {
     return this.innerService.hasMore
   }
-  override loadMoreItems(abortSignal: AbortSignal) {
+  override fetchMore(abortSignal: AbortSignal) {
     return this.innerService.loadMore(abortSignal)
   }
 

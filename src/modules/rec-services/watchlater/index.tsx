@@ -5,10 +5,10 @@ import { getHasLogined, getUid } from '$utility/cookie'
 import { whenIdle } from '$utility/dom'
 import toast from '$utility/toast'
 import dayjs from 'dayjs'
-import { shuffle } from 'es-toolkit'
+import { orderBy, shuffle } from 'es-toolkit'
 import { proxy, useSnapshot } from 'valtio'
 import { proxySet } from 'valtio/utils'
-import { BaseTabService, QueueStrategy, type IService } from '../_base'
+import { BaseTabService, type IService } from '../_base'
 import { getAllWatchlaterItemsV2, getWatchlaterItemFrom } from './api'
 import { type WatchlaterItem } from './types'
 import { WatchLaterUsageInfo } from './usage-info'
@@ -38,34 +38,42 @@ if (getHasLogined() && getUid()) {
 export class WatchLaterRecService extends BaseTabService<WatchLaterItemExtend | ItemsSeparator> {
   static PAGE_SIZE = 10
 
-  innerService: WatchlaterNormalOrderService | WatchlaterShuffleOrderService
+  innerService: NormalOrderService | ShuffleOrderService
   constructor(
     public useShuffle: boolean,
-    prevShuffleBvids?: string[],
+    prevShuffleBvidIndexMap?: BvidIndexMap,
   ) {
     super(WatchLaterRecService.PAGE_SIZE)
     this.innerService = settings.watchlaterUseShuffle
-      ? new WatchlaterShuffleOrderService(prevShuffleBvids)
-      : new WatchlaterNormalOrderService()
+      ? new ShuffleOrderService(prevShuffleBvidIndexMap)
+      : new NormalOrderService()
   }
 
-  get hasMoreExceptQueue() {
+  override get hasMoreExceptQueue() {
     return this.innerService.hasMore
   }
 
-  loadMoreItems(
+  override fetchMore(
     abortSignal: AbortSignal,
   ): Promise<(WatchLaterItemExtend | ItemsSeparator)[] | undefined> {
     return this.innerService.loadMore(abortSignal)
   }
 
-  get usageInfo(): ReactNode {
+  override get usageInfo(): ReactNode {
     return this.innerService.usageInfo
   }
 
   // for remove watchlater card
   decreaseTotal() {
     this.innerService.total--
+  }
+
+  getSnapshot() {
+    const bvidIndexMap =
+      this.innerService instanceof ShuffleOrderService
+        ? this.innerService.currentBvidIndexMap
+        : undefined
+    return { bvidIndexMap }
   }
 }
 
@@ -106,29 +114,41 @@ function showApiRequestError(err: string) {
  * shuffle pre-requirements: load ALL
  */
 
-export class WatchlaterShuffleOrderService implements IService {
-  static PAGE_SIZE = 20
-  qs = new QueueStrategy<WatchLaterItemExtend | ItemsSeparator>(
-    WatchlaterShuffleOrderService.PAGE_SIZE,
-  )
+export type BvidIndexMap = Map<string, number>
 
+class ShuffleOrderService implements IService {
   addSeparator = settings.watchlaterAddSeparator
   loaded = false
   total: number = 0
+  hasMore = true
 
   // shuffle related
   keepOrder: boolean
-  prevShuffleBvids?: string[]
-  constructor(prevShuffleBvids?: string[]) {
-    if (prevShuffleBvids?.length) {
+  prevBvidIndexMap?: BvidIndexMap
+  constructor(prevBvidIndexMap?: BvidIndexMap) {
+    if (prevBvidIndexMap?.size) {
       this.keepOrder = true
-      this.prevShuffleBvids = prevShuffleBvids
+      this.prevBvidIndexMap = prevBvidIndexMap
     } else {
       this.keepOrder = false
     }
   }
 
-  currentShuffleBvids: string[] = []
+  get usageInfo(): ReactNode {
+    if (!this.loaded) return
+    const { total } = this
+    return <WatchLaterUsageInfo total={total} />
+  }
+
+  async loadMore(abortSignal: AbortSignal) {
+    if (!this.hasMore) return
+    if (this.loaded) return
+    const items = await this.fetch(abortSignal)
+    this.loaded = true
+    return items
+  }
+
+  currentBvidIndexMap?: BvidIndexMap
   private async fetch(abortSignal: AbortSignal) {
     const { items: rawItems, err } = await getAllWatchlaterItemsV2(false, abortSignal)
     if (typeof err !== 'undefined') {
@@ -146,15 +166,17 @@ export class WatchlaterShuffleOrderService implements IService {
       let earlier = items.slice(firstNotRecentIndex)
 
       // earlier: shuffle or restore
-      if (this.keepOrder && this.prevShuffleBvids?.length) {
-        earlier = earlier
-          .map((item) => ({
-            item,
-            // if not found, -1, front-most
-            index: this.prevShuffleBvids!.findIndex((bvid) => item.bvid === bvid),
-          }))
-          .sort((a, b) => a.index - b.index)
-          .map((x) => x.item)
+      if (this.keepOrder && this.prevBvidIndexMap?.size) {
+        earlier = orderBy(
+          earlier,
+          [
+            (item) => {
+              // if not found, -1, front-most
+              return this.prevBvidIndexMap?.get(item.bvid) ?? -1
+            },
+          ],
+          ['asc'],
+        )
       } else {
         earlier = shuffle(earlier)
       }
@@ -170,37 +192,16 @@ export class WatchlaterShuffleOrderService implements IService {
     }
 
     this.total = rawItems.length
-    this.currentShuffleBvids = itemsWithSeparator
-      .filter((x) => x.api !== EApiType.Separator)
-      .map((x) => x.bvid)
+    this.currentBvidIndexMap = new Map(
+      itemsWithSeparator
+        .filter((x) => x.api !== EApiType.Separator)
+        .map((x, index) => [x.bvid, index]),
+    )
     return itemsWithSeparator
-  }
-
-  get usageInfo(): ReactNode {
-    if (!this.loaded) return
-    const { total } = this
-    return <WatchLaterUsageInfo total={total} />
-  }
-
-  get hasMore() {
-    if (!this.loaded) return true
-    return !!this.qs.bufferQueue.length
-  }
-
-  async loadMore(abortSignal: AbortSignal) {
-    if (!this.hasMore) return
-
-    if (!this.loaded) {
-      const items = await this.fetch(abortSignal)
-      this.qs.bufferQueue.push(...items)
-      this.loaded = true
-    }
-
-    return this.qs.sliceFromQueue()
   }
 }
 
-class WatchlaterNormalOrderService implements IService {
+class NormalOrderService implements IService {
   // configs
   addSeparator = settings.watchlaterAddSeparator
   addAtAsc = settings.watchlaterNormalOrderSortByAddAtAsc

@@ -24,12 +24,12 @@ export async function getLiveList(page: number) {
 export class LiveRecService extends BaseTabService<LiveItemExtend | ItemsSeparator> {
   static PAGE_SIZE = 20
 
-  usageInfo = undefined
-  hasMoreExceptQueue = true
-
   constructor() {
     super(LiveRecService.PAGE_SIZE)
   }
+
+  override usageInfo = undefined
+  override hasMoreExceptQueue = true
 
   loaded = false
   liveCount = -1
@@ -37,7 +37,7 @@ export class LiveRecService extends BaseTabService<LiveItemExtend | ItemsSeparat
   totalPage = Infinity
   separatorAdded = false
 
-  async loadMoreItems(
+  override async fetchMore(
     abortSignal: AbortSignal,
   ): Promise<(LiveItemExtend | ItemsSeparator)[] | undefined> {
     if (this.page > this.totalPage) {

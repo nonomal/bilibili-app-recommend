@@ -14,14 +14,14 @@ const uniqId = () => Date.now() + _id++
 
 export class PcRecService extends BaseTabService<PcRecItemExtend> {
   static PAGE_SIZE = 14
-  usageInfo = undefined
+  override usageInfo = undefined
 
   constructor(public isKeepFollowOnly: boolean) {
     super(PcRecService.PAGE_SIZE)
     this.isKeepFollowOnly = isKeepFollowOnly
   }
 
-  override loadMoreItems(abortSignal: AbortSignal): Promise<PcRecItemExtend[] | undefined> {
+  override fetchMore(abortSignal: AbortSignal): Promise<PcRecItemExtend[] | undefined> {
     const times = this.isKeepFollowOnly ? 5 : 2
     return this.getRecommendTimes(times, abortSignal)
   }

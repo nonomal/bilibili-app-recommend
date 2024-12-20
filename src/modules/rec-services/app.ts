@@ -41,7 +41,7 @@ export function getAppRecServiceConfig() {
 export class AppRecService extends BaseTabService<RecItemType> {
   static readonly PAGE_SIZE = 20
 
-  usageInfo = undefined
+  override usageInfo = undefined
 
   innerService: AppRecInnerService
   allServices: IService[] = []
@@ -119,8 +119,10 @@ export class AppRecService extends BaseTabService<RecItemType> {
     )
   }
 
-  hasMoreExceptQueue = true
-  loadMoreItems(abortSignal: AbortSignal): Promise<RecItemType[] | undefined> {
+  override hasMoreExceptQueue = true
+
+  // this is not used, since below `override loadMore`
+  override fetchMore(abortSignal: AbortSignal): Promise<RecItemType[] | undefined> {
     throw new Error('Method not implemented.')
   }
 

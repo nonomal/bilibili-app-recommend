@@ -68,22 +68,22 @@ const HotSubTabConfig = {
 }
 
 export class HotRecService extends BaseTabService<RecItemTypeOrSeparator> {
-  override get usageInfo() {
-    return <HotUsageInfo>{this.service.usageInfo}</HotUsageInfo>
-  }
-  override get hasMoreExceptQueue() {
-    return this.service.hasMore
-  }
-  override loadMoreItems(abortSignal: AbortSignal) {
-    return this.service.loadMore(abortSignal)
-  }
-
   subtab: EHotSubTab
   service: IService
   constructor() {
     super(20)
     this.subtab = hotStore.subtab
     this.service = new ServiceMap[hotStore.subtab]()
+  }
+
+  override get usageInfo() {
+    return <HotUsageInfo>{this.service.usageInfo}</HotUsageInfo>
+  }
+  override get hasMoreExceptQueue() {
+    return this.service.hasMore
+  }
+  override fetchMore(abortSignal: AbortSignal) {
+    return this.service.loadMore(abortSignal)
   }
 }
 

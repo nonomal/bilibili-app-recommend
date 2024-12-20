@@ -234,7 +234,7 @@ export class DynamicFeedRecService extends BaseTabService<DynamicFeedItemExtend 
 
   private _queueForSearchCache: QueueStrategy<DynamicFeedItem> | undefined
 
-  override async loadMoreItems(abortSignal: AbortSignal) {
+  override async fetchMore(abortSignal: AbortSignal) {
     // load live first
     if (this.liveRecService && this.hasMoreStreamingLive) {
       const items = (await this.liveRecService.loadMore(abortSignal)) || []
