@@ -24,22 +24,19 @@ export async function getLiveList(page: number) {
 export class LiveRecService extends BaseTabService<LiveItemExtend | ItemsSeparator> {
   static PAGE_SIZE = 20
 
-  constructor() {
+  constructor(private streamingOnly = false) {
     super(LiveRecService.PAGE_SIZE)
   }
 
   override usageInfo = undefined
   override hasMoreExceptQueue = true
 
-  loaded = false
+  private separatorAdded = false
   liveCount = -1
   page = 1
   totalPage = Infinity
-  separatorAdded = false
 
-  override async fetchMore(
-    abortSignal: AbortSignal,
-  ): Promise<(LiveItemExtend | ItemsSeparator)[] | undefined> {
+  override async fetchMore(abortSignal: AbortSignal) {
     if (this.page > this.totalPage) {
       this.hasMoreExceptQueue = false
       return
@@ -77,10 +74,14 @@ export class LiveRecService extends BaseTabService<LiveItemExtend | ItemsSeparat
       }
     }
 
-    const ret: (LiveItemExtend | ItemsSeparator)[] = items
+    let ret: (LiveItemExtend | ItemsSeparator)[] = items
 
     // add separator
-    if (!this.separatorAdded && items.some((x) => x.live_status !== ELiveStatus.Streaming)) {
+    if (
+      !this.streamingOnly &&
+      !this.separatorAdded &&
+      items.some((x) => x.live_status !== ELiveStatus.Streaming)
+    ) {
       this.separatorAdded = true
       const index = items.findIndex((x) => x.live_status !== ELiveStatus.Streaming)
       ret.splice(index, 0, {
@@ -88,6 +89,12 @@ export class LiveRecService extends BaseTabService<LiveItemExtend | ItemsSeparat
         uniqId: 'live-separator',
         content: '最近直播过',
       })
+    }
+
+    // streaming only
+    if (this.streamingOnly && items.some((x) => x.live_status !== ELiveStatus.Streaming)) {
+      this.hasMoreExceptQueue = false
+      ret = items.filter((x) => x.live_status === ELiveStatus.Streaming)
     }
 
     return ret

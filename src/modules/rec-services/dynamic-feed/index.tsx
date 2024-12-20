@@ -104,7 +104,7 @@ export class DynamicFeedRecService extends BaseTabService<DynamicFeedItemExtend 
   override get hasMore() {
     if (this.qs.bufferQueue.length) return true
 
-    if (this.hasMoreStreamingLive) return true
+    if (this.liveRecService?.hasMore) return true
 
     if (this.viewingSomeGroup && this.whenViewSomeGroupMergeTimelineService) {
       return this.whenViewSomeGroupMergeTimelineService.hasMore
@@ -118,13 +118,6 @@ export class DynamicFeedRecService extends BaseTabService<DynamicFeedItemExtend 
   page = 0 // pages loaded
 
   liveRecService: LiveRecService | undefined
-  get hasMoreStreamingLive() {
-    // has more streaming Live item
-    if (this.liveRecService?.hasMore && !this.liveRecService.separatorAdded) {
-      return true
-    }
-    return false
-  }
 
   constructor(public config: DynamicFeedServiceConfig) {
     super(DynamicFeedRecService.PAGE_SIZE)
@@ -137,7 +130,7 @@ export class DynamicFeedRecService extends BaseTabService<DynamicFeedItemExtend 
         this.dynamicFeedVideoType === DynamicFeedVideoType.All &&
         this.filterMinDuration === DynamicFeedVideoMinDuration.All
       if (filterEmpty) {
-        this.liveRecService = new LiveRecService()
+        this.liveRecService = new LiveRecService(true)
       }
     }
 
@@ -235,16 +228,10 @@ export class DynamicFeedRecService extends BaseTabService<DynamicFeedItemExtend 
   private _queueForSearchCache: QueueStrategy<DynamicFeedItem> | undefined
 
   override async fetchMore(abortSignal: AbortSignal) {
-    // load live first
-    if (this.liveRecService && this.hasMoreStreamingLive) {
+    // live
+    if (this.liveRecService?.hasMore) {
       const items = (await this.liveRecService.loadMore(abortSignal)) || []
-      const hasSep = items.some((x) => x.api === EApiType.Separator)
-      if (!hasSep) {
-        return items.filter((x) => x.api !== EApiType.Separator)
-      } else {
-        const idx = items.findIndex((x) => x.api === EApiType.Separator)
-        return items.slice(0, idx).filter((x) => x.api !== EApiType.Separator)
-      }
+      return items.filter((x) => x.api !== EApiType.Separator)
     }
 
     let rawItems: DynamicFeedItem[]
