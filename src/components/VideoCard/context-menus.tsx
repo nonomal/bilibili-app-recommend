@@ -68,8 +68,8 @@ export function useContextMenus({
   onRefresh,
   watchlaterAdded,
   bvid,
-  hasWatchLaterEntry,
-  onToggleWatchLater,
+  hasWatchlaterEntry,
+  onToggleWatchlater,
   favFolderNames,
   avid,
   favFolderUrls,
@@ -92,8 +92,8 @@ export function useContextMenus({
   onRefresh: OnRefresh | undefined
   watchlaterAdded: boolean
   bvid: string | undefined
-  hasWatchLaterEntry: boolean
-  onToggleWatchLater: (
+  hasWatchlaterEntry: boolean
+  onToggleWatchlater: (
     e?: MouseEvent,
     usingAction?: typeof watchlaterDel | typeof watchlaterAdd,
   ) => Promise<{
@@ -306,7 +306,7 @@ export function useContextMenus({
         },
       },
       {
-        test: hasWatchLaterEntry,
+        test: hasWatchlaterEntry,
         key: 'watchlater',
         label: watchlaterAdded ? '移除稍后再看' : '稍后再看',
         icon: watchlaterAdded ? (
@@ -315,7 +315,19 @@ export function useContextMenus({
           <IconForWatchlater {...size(15)} />
         ),
         onClick() {
-          onToggleWatchLater()
+          onToggleWatchlater()
+        },
+      },
+      {
+        test: hasWatchlaterEntry && watchlaterAdded,
+        key: 'watchlater-readd',
+        label: `重新添加稍候再看${tab === ETab.Watchlater ? ' (移到最前)' : ''}`,
+        icon: <IconParkOutlineAddTwo className='size-15px' />,
+        async onClick() {
+          const { success } = await onToggleWatchlater(undefined, watchlaterAdd)
+          if (success && tab === ETab.Watchlater) {
+            onMoveToFirst?.(item, cardData)
+          }
         },
       },
       {
@@ -348,17 +360,6 @@ export function useContextMenus({
               antMessage.success(`已加入收藏夹「${defaultFavFolderName}」`)
             }
           }
-        },
-      },
-      {
-        test: isWatchlater(item) && watchlaterAdded,
-        key: 'watchlater-readd',
-        label: '重新添加稍候再看 (移到最前)',
-        icon: <IconParkOutlineAddTwo className='size-15px' />,
-        async onClick() {
-          const { success } = await onToggleWatchLater(undefined, watchlaterAdd)
-          if (!success) return
-          onMoveToFirst?.(item, cardData)
         },
       },
 
@@ -491,7 +492,7 @@ export function useContextMenus({
     cardData,
     tab,
     // entries
-    hasWatchLaterEntry,
+    hasWatchlaterEntry,
     watchlaterAdded,
     hasDislikeEntry,
     hasUnfollowEntry,

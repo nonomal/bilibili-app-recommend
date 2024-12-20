@@ -21,7 +21,7 @@ import {
   type PopularWeeklyItemExtend,
   type RankingItemExtend,
   type RecItemType,
-  type WatchLaterItemExtend,
+  type WatchlaterItemExtend,
 } from '$define'
 import { EApiType } from '$define/index.shared'
 import { styled } from '$libs'
@@ -101,7 +101,7 @@ export function lookinto<T>(
     [EApiType.AppRecommend]: (item: AppRecItemExtend) => T
     [EApiType.PcRecommend]: (item: PcRecItemExtend) => T
     [EApiType.DynamicFeed]: (item: DynamicFeedItemExtend) => T
-    [EApiType.Watchlater]: (item: WatchLaterItemExtend) => T
+    [EApiType.Watchlater]: (item: WatchlaterItemExtend) => T
     [EApiType.Fav]: (item: FavItemExtend) => T
     [EApiType.PopularGeneral]: (item: PopularGeneralItemExtend) => T
     [EApiType.PopularWeekly]: (item: PopularWeeklyItemExtend) => T
@@ -126,7 +126,7 @@ export function normalizeCardData(item: RecItemType) {
     [EApiType.AppRecommend]: apiAppAdapter,
     [EApiType.PcRecommend]: apiPcAdapter,
     [EApiType.DynamicFeed]: apiDynamicAdapter,
-    [EApiType.Watchlater]: apiWatchLaterAdapter,
+    [EApiType.Watchlater]: apiWatchlaterAdapter,
     [EApiType.Fav]: apiFavAdapter,
     [EApiType.PopularGeneral]: apiPopularGeneralAdapter,
     [EApiType.PopularWeekly]: apiPopularWeeklyAdapter,
@@ -418,7 +418,7 @@ function apiDynamicAdapter(item: DynamicFeedItemExtend): IVideoCardData {
   }
 }
 
-function apiWatchLaterAdapter(item: WatchLaterItemExtend): IVideoCardData {
+function apiWatchlaterAdapter(item: WatchlaterItemExtend): IVideoCardData {
   const invalidReason = getVideoInvalidReason(item.state)
   const viewed = item.progress > 0
   const title = `${viewed ? '【已观看】· ' : ''}${item.title}`

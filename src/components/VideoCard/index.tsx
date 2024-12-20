@@ -283,7 +283,7 @@ const VideoCardInner = memo(function VideoCardInner({
   const actionButtonVisible = active || isHovering
 
   // 稍候再看
-  const { watchlaterButtonEl, onToggleWatchLater, hasWatchLaterEntry } = useWatchlaterRelated({
+  const { watchlaterButtonEl, onToggleWatchlater, hasWatchlaterEntry } = useWatchlaterRelated({
     item,
     cardData,
     onRemoveCurrent,
@@ -346,7 +346,7 @@ const VideoCardInner = memo(function VideoCardInner({
 
   useMittOn(emitter, 'open', onOpenWithMode)
   useMittOn(emitter, 'open-in-popup', onOpenInPopup)
-  useMittOn(emitter, 'toggle-watch-later', () => onToggleWatchLater())
+  useMittOn(emitter, 'toggle-watch-later', () => onToggleWatchlater())
   useMittOn(emitter, 'trigger-dislike', () => onTriggerDislike())
   useMittOn(emitter, 'start-preview-animation', onStartPreviewAnimation)
   useMittOn(emitter, 'hotkey-preview-animation', onHotkeyPreviewAnimation)
@@ -368,8 +368,8 @@ const VideoCardInner = memo(function VideoCardInner({
     onRefresh,
     watchlaterAdded,
     bvid,
-    hasWatchLaterEntry,
-    onToggleWatchLater,
+    hasWatchlaterEntry,
+    onToggleWatchlater,
     favFolderNames,
     avid,
     favFolderUrls,

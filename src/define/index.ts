@@ -56,7 +56,7 @@ export type RecItemType =
   | IpadAppRecItemExtend
   | PcRecItemExtend
   | DynamicFeedItemExtend
-  | WatchLaterItemExtend
+  | WatchlaterItemExtend
   | FavItemExtend
   | PopularGeneralItemExtend
   | PopularWeeklyItemExtend
@@ -77,7 +77,7 @@ export type DynamicFeedItemExtend = DynamicFeedItem & {
   api: EApiType.DynamicFeed
 }
 
-export type WatchLaterItemExtend = WatchlaterItem & {
+export type WatchlaterItemExtend = WatchlaterItem & {
   uniqId: string
   api: EApiType.Watchlater
 }
@@ -115,7 +115,7 @@ export function isPcRecommend(item: RecItemType): item is PcRecItemExtend {
 export function isDynamicFeed(item: RecItemType): item is DynamicFeedItemExtend {
   return item.api === EApiType.DynamicFeed
 }
-export function isWatchlater(item: RecItemType): item is WatchLaterItemExtend {
+export function isWatchlater(item: RecItemType): item is WatchlaterItemExtend {
   return item.api === EApiType.Watchlater
 }
 export function isFav(item: RecItemType): item is FavItemExtend {

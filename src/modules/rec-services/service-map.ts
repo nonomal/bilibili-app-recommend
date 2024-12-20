@@ -9,7 +9,7 @@ import { FavRecService, getFavServiceConfig } from './fav'
 import { HotRecService } from './hot'
 import { LiveRecService } from './live'
 import { PcRecService } from './pc'
-import { WatchLaterRecService } from './watchlater'
+import { WatchlaterRecService } from './watchlater'
 
 export const REC_TABS = [ETab.KeepFollowOnly, ETab.PcRecommend, ETab.AppRecommend] satisfies ETab[]
 
@@ -27,10 +27,10 @@ export const createServiceMap = {
   [ETab.Watchlater]: ({ existingService }) => {
     const useShuffle = settings.watchlaterUseShuffle
     const prevShuffleBvidIndexMap =
-      existingService && existingService instanceof WatchLaterRecService
+      existingService && existingService instanceof WatchlaterRecService
         ? existingService.getSnapshot().bvidIndexMap
         : undefined
-    return new WatchLaterRecService(useShuffle, prevShuffleBvidIndexMap)
+    return new WatchlaterRecService(useShuffle, prevShuffleBvidIndexMap)
   },
   [ETab.Fav]: () => new FavRecService(getFavServiceConfig()),
   [ETab.Hot]: () => new HotRecService(),

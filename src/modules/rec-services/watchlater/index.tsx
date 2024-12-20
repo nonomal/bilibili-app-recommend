@@ -1,4 +1,4 @@
-import { type ItemsSeparator, type WatchLaterItemExtend } from '$define'
+import { type ItemsSeparator, type WatchlaterItemExtend } from '$define'
 import { EApiType } from '$define/index.shared'
 import { settings } from '$modules/settings'
 import { getHasLogined, getUid } from '$utility/cookie'
@@ -11,7 +11,7 @@ import { proxySet } from 'valtio/utils'
 import { BaseTabService, type IService } from '../_base'
 import { getAllWatchlaterItemsV2, getWatchlaterItemFrom } from './api'
 import { type WatchlaterItem } from './types'
-import { WatchLaterUsageInfo } from './usage-info'
+import { WatchlaterUsageInfo } from './usage-info'
 
 export const watchlaterState = proxy({
   updatedAt: 0,
@@ -27,15 +27,15 @@ if (getHasLogined() && getUid()) {
   void (async () => {
     await whenIdle()
 
-    const { items: allWatchLaterItems } = await getAllWatchlaterItemsV2()
-    if (!allWatchLaterItems.length) return
+    const { items: allWatchlaterItems } = await getAllWatchlaterItemsV2()
+    if (!allWatchlaterItems.length) return
 
     watchlaterState.updatedAt = Date.now()
-    watchlaterState.bvidSet = proxySet<string>(allWatchLaterItems.map((x) => x.bvid))
+    watchlaterState.bvidSet = proxySet<string>(allWatchlaterItems.map((x) => x.bvid))
   })()
 }
 
-export class WatchLaterRecService extends BaseTabService<WatchLaterItemExtend | ItemsSeparator> {
+export class WatchlaterRecService extends BaseTabService<WatchlaterItemExtend | ItemsSeparator> {
   static PAGE_SIZE = 10
 
   innerService: NormalOrderService | ShuffleOrderService
@@ -43,7 +43,7 @@ export class WatchLaterRecService extends BaseTabService<WatchLaterItemExtend | 
     public useShuffle: boolean,
     prevShuffleBvidIndexMap?: BvidIndexMap,
   ) {
-    super(WatchLaterRecService.PAGE_SIZE)
+    super(WatchlaterRecService.PAGE_SIZE)
     this.innerService = settings.watchlaterUseShuffle
       ? new ShuffleOrderService(prevShuffleBvidIndexMap)
       : new NormalOrderService()
@@ -55,7 +55,7 @@ export class WatchLaterRecService extends BaseTabService<WatchLaterItemExtend | 
 
   override fetchMore(
     abortSignal: AbortSignal,
-  ): Promise<(WatchLaterItemExtend | ItemsSeparator)[] | undefined> {
+  ): Promise<(WatchlaterItemExtend | ItemsSeparator)[] | undefined> {
     return this.innerService.loadMore(abortSignal)
   }
 
@@ -81,7 +81,7 @@ export class WatchLaterRecService extends BaseTabService<WatchLaterItemExtend | 
  * shared
  */
 
-function extendItem(item: WatchlaterItem): WatchLaterItemExtend {
+function extendItem(item: WatchlaterItem): WatchlaterItemExtend {
   return {
     ...item,
     api: EApiType.Watchlater,
@@ -137,7 +137,7 @@ class ShuffleOrderService implements IService {
   get usageInfo(): ReactNode {
     if (!this.loaded) return
     const { total } = this
-    return <WatchLaterUsageInfo total={total} />
+    return <WatchlaterUsageInfo total={total} />
   }
 
   async loadMore(abortSignal: AbortSignal) {
@@ -155,12 +155,12 @@ class ShuffleOrderService implements IService {
       showApiRequestError(err)
     }
 
-    const items: WatchLaterItemExtend[] = rawItems.map(extendItem)
+    const items: WatchlaterItemExtend[] = rawItems.map(extendItem)
 
     // recent + earlier
     const recentGate = getRecentGate()
     const firstNotRecentIndex = items.findIndex((item) => item.add_at < recentGate)
-    let itemsWithSeparator: Array<WatchLaterItemExtend | ItemsSeparator> = items
+    let itemsWithSeparator: Array<WatchlaterItemExtend | ItemsSeparator> = items
     if (firstNotRecentIndex !== -1) {
       const recent = items.slice(0, firstNotRecentIndex)
       let earlier = items.slice(firstNotRecentIndex)
@@ -211,7 +211,7 @@ class NormalOrderService implements IService {
 
   get usageInfo(): ReactNode {
     if (!this.firstPageLoaded) return
-    return <WatchLaterUsageInfo total={this.total} />
+    return <WatchlaterUsageInfo total={this.total} />
   }
 
   hasMore: boolean = true
@@ -234,16 +234,16 @@ class NormalOrderService implements IService {
     this.nextKey = result.nextKey
     this.total = result.total
 
-    const items: WatchLaterItemExtend[] = result.items.map(extendItem)
+    const items: WatchlaterItemExtend[] = result.items.map(extendItem)
     return this.insertSeparator(items)
   }
 
   private recentSeparatorInserted = false
   private earlierSeparatorInserted = false
-  insertSeparator(items: WatchLaterItemExtend[]): (WatchLaterItemExtend | ItemsSeparator)[] {
+  insertSeparator(items: WatchlaterItemExtend[]): (WatchlaterItemExtend | ItemsSeparator)[] {
     if (!this.addSeparator) return items
 
-    let newItems: (WatchLaterItemExtend | ItemsSeparator)[] = [...items]
+    let newItems: (WatchlaterItemExtend | ItemsSeparator)[] = [...items]
 
     const recentGate = getRecentGate()
     const needEarlierSeparator = items.some((item) => item.add_at < recentGate)

@@ -30,7 +30,7 @@ export function useWatchlaterRelated({
   watchlaterAdded: boolean
 }) {
   const { avid, bvid } = cardData
-  const hasWatchLaterEntry = (() => {
+  const hasWatchlaterEntry = (() => {
     if (item.api === EApiType.AppRecommend) {
       return item.goto === 'av'
     }
@@ -51,7 +51,7 @@ export function useWatchlaterRelated({
   // watchlater added
   const watchlaterAddedPrevious = usePrevious(watchlaterAdded)
 
-  const onToggleWatchLater = useMemoizedFn(
+  const onToggleWatchlater = useMemoizedFn(
     async (
       e?: MouseEvent,
       usingAction?: typeof watchlaterDel | typeof watchlaterAdd,
@@ -133,15 +133,15 @@ export function useWatchlaterRelated({
         ? '已添加稍后再看, 点击移除'
         : '稍后再看'
 
-  const watchlaterButtonEl = hasWatchLaterEntry && (
+  const watchlaterButtonEl = hasWatchlaterEntry && (
     <VideoCardActionButton
       visible={actionButtonVisible}
       inlinePosition='right'
       icon={icon}
       tooltip={tooltip}
-      onClick={onToggleWatchLater}
+      onClick={onToggleWatchlater}
     />
   )
 
-  return { watchlaterButtonEl, onToggleWatchLater, watchlaterAdded, hasWatchLaterEntry }
+  return { watchlaterButtonEl, onToggleWatchlater, watchlaterAdded, hasWatchlaterEntry }
 }

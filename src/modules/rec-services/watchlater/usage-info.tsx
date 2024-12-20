@@ -14,7 +14,7 @@ import { ShuffleSettingsItemFor } from '../_shared'
 
 type TagColor = ComponentProps<typeof Tag>['color']
 
-export function WatchLaterUsageInfo({ total }: { total: number }) {
+export function WatchlaterUsageInfo({ total }: { total: number }) {
   // 2023.12: B站的稍后再看上限提升到1000了
   // 所有这里就不管数量喽
   const color: TagColor = 'success'
