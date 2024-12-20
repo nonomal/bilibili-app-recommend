@@ -2,7 +2,7 @@ import type { RefStateBox } from '$common/hooks/useRefState'
 import { ETab } from '$components/RecHeader/tab-enum'
 import { settings } from '$modules/settings'
 import { invariant } from 'es-toolkit'
-import type { BaseTabService, ITabService } from './_base'
+import type { BaseTabService } from './_base'
 import { AppRecService, getAppRecServiceConfig } from './app'
 import { DynamicFeedRecService, getDynamicFeedServiceConfig } from './dynamic-feed'
 import { FavRecService, getFavServiceConfig } from './fav'
@@ -51,18 +51,11 @@ export type FetcherOptions = {
   servicesRegistry: ServicesRegistry
 }
 
-export function getServiceFromRegistry(
+export function getServiceFromRegistry<T extends ETab>(
   servicesRegistry: RefStateBox<Partial<ServiceMap>>,
-  tab: ETab,
-): ITabService {
+  tab: T,
+): ServiceMap[T] {
   const service = servicesRegistry.val[tab]
   invariant(service, `servicesRegistry.val[tab=${tab}] should not be nil`)
   return service
-}
-
-export function assertService(
-  service: ITabService | undefined,
-  tab?: ETab,
-): asserts service is ITabService {
-  invariant(service, `service is nil for tab=${tab || 'unknown'}`)
 }

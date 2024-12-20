@@ -9,7 +9,7 @@ import { uniqBy } from 'es-toolkit'
 import { AppRecService } from './app'
 import { DynamicFeedVideoMinDuration, DynamicFeedVideoType } from './dynamic-feed/store'
 import { PcRecService } from './pc'
-import { assertService, getServiceFromRegistry, REC_TABS, type FetcherOptions } from './service-map'
+import { getServiceFromRegistry, REC_TABS, type FetcherOptions } from './service-map'
 
 const debug = baseDebug.extend('service')
 
@@ -91,13 +91,11 @@ async function fetchMinCount(count: number, fetcherOptions: FetcherOptions, filt
     }
 
     if (usePcApi(tab)) {
-      const service = servicesRegistry.val[tab]
-      assertService(service, tab)
+      const service = getServiceFromRegistry(servicesRegistry, tab)
       cur = (await service.loadMoreBatch(times, abortSignal)) || []
       hasMore = service.hasMore
     } else {
-      const service = servicesRegistry.val[ETab.AppRecommend]
-      assertService(service, tab)
+      const service = getServiceFromRegistry(servicesRegistry, ETab.AppRecommend)
       cur =
         (await (service.config.addOtherTabContents
           ? service.loadMore(abortSignal)
@@ -147,8 +145,7 @@ export async function refreshForGrid(fetcherOptions: FetcherOptions) {
 
   // 当结果很少的, 不用等一屏
   if (fetcherOptions.tab === ETab.DynamicFeed) {
-    const service = fetcherOptions.servicesRegistry.val[ETab.DynamicFeed]
-    assertService(service, fetcherOptions.tab)
+    const service = getServiceFromRegistry(fetcherOptions.servicesRegistry, ETab.DynamicFeed)
     if (
       typeof service.followGroupTagId !== 'undefined' || // 选择了分组 & 分组很少更新, TODO: 考虑 merge-timeline
       // 过滤结果可能比较少
