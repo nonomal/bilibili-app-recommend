@@ -325,7 +325,9 @@ export function useContextMenus({
         icon: <IconParkOutlineAddTwo className='size-15px' />,
         async onClick() {
           const { success } = await onToggleWatchlater(undefined, watchlaterAdd)
-          if (success && tab === ETab.Watchlater) {
+          if (!success) return
+          antMessage.success('已重新添加')
+          if (tab === ETab.Watchlater) {
             onMoveToFirst?.(item, cardData)
           }
         },
