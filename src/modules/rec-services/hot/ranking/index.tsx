@@ -25,12 +25,8 @@ import type { RankingItem } from './types'
 
 export class RankingRecService implements IService {
   loaded = false
-  slug: CategorySlug
   qs = new QueueStrategy<RankingItemExtend>(20)
-
-  constructor(slug?: CategorySlug) {
-    this.slug = slug || rankingStore.slug
-  }
+  constructor(private slug: CategorySlug) {}
 
   get hasMore() {
     if (!this.loaded) return true

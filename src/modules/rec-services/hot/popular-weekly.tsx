@@ -5,7 +5,6 @@ import { type ItemsSeparator, type PopularWeeklyItemExtend } from '$define'
 import { EApiType } from '$define/index.shared'
 import type { PopularWeeklyJson } from '$define/popular-weekly'
 import type { PopularWeeklyListItem, PopularWeeklyListJson } from '$define/popular-weekly.list'
-import { settings } from '$modules/settings'
 import { request } from '$request'
 import dayjs from 'dayjs'
 import { delay, shuffle } from 'es-toolkit'
@@ -41,18 +40,11 @@ export function isWeekendForPopularWeekly() {
 }
 
 export class PopularWeeklyRecService implements IService {
-  static id = 0
   static PAGE_SIZE = 20
 
   episodesLoaded = false
   episodes: PopularWeeklyListItem[] = []
-
-  id: number
-  useShuffle: boolean
-  constructor() {
-    this.id = PopularWeeklyRecService.id++
-    this.useShuffle = settings.popularWeeklyUseShuffle
-  }
+  constructor(private useShuffle: boolean) {}
 
   // full-list = returnedItems + bufferQueue + more
   qs = new QueueStrategy<PopularWeeklyItemExtend | ItemsSeparator>(

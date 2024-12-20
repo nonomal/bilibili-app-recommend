@@ -17,13 +17,14 @@ import type { IService } from '../_base'
 import { BaseTabService, usePopupContainer } from '../_base'
 import { PopularGeneralRecService } from './popular-general'
 import { PopularWeeklyRecService } from './popular-weekly'
-import { RankingRecService } from './ranking'
+import { RankingRecService, rankingStore } from './ranking'
 
-const ServiceMap = {
-  [EHotSubTab.PopularGeneral]: PopularGeneralRecService,
-  [EHotSubTab.PopularWeekly]: PopularWeeklyRecService,
-  [EHotSubTab.Ranking]: RankingRecService,
-} satisfies Record<EHotSubTab, new () => IService>
+const subtabServiceCreators = {
+  [EHotSubTab.PopularGeneral]: () =>
+    new PopularGeneralRecService(settings.popularGeneralUseAnonymous),
+  [EHotSubTab.PopularWeekly]: () => new PopularWeeklyRecService(settings.popularWeeklyUseShuffle),
+  [EHotSubTab.Ranking]: () => new RankingRecService(rankingStore.slug),
+} satisfies Record<EHotSubTab, () => IService>
 
 // 是否是: 换一换
 export function isHotTabUsingShuffle(shuffleForPopularWeekly?: boolean) {
@@ -73,7 +74,7 @@ export class HotRecService extends BaseTabService<RecItemTypeOrSeparator> {
   constructor() {
     super(20)
     this.subtab = hotStore.subtab
-    this.service = new ServiceMap[hotStore.subtab]()
+    this.service = subtabServiceCreators[hotStore.subtab]()
   }
 
   override get usageInfo() {

@@ -4,7 +4,6 @@ import { useOnRefreshContext } from '$components/RecGrid/useRefresh'
 import { type PopularGeneralItemExtend } from '$define'
 import { EApiType } from '$define/index.shared'
 import type { PopularGeneralJson } from '$define/popular-general'
-import { settings } from '$modules/settings'
 import { isWebApiSuccess, request } from '$request'
 import toast from '$utility/toast'
 import { delay } from 'es-toolkit'
@@ -12,15 +11,8 @@ import type { IService } from '../_base'
 
 export class PopularGeneralRecService implements IService {
   hasMore = true
-  page = 0 // pages loaded
-
-  // shuffle: boolean
-  anonymous: boolean
-
-  constructor() {
-    // this.shuffle = settings.shuffleForPopularGeneral
-    this.anonymous = settings.popularGeneralUseAnonymous
-  }
+  page = 1
+  constructor(private anonymous: boolean) {}
 
   async loadMore() {
     if (!this.hasMore) return
@@ -28,7 +20,7 @@ export class PopularGeneralRecService implements IService {
     const res = await request.get('/x/web-interface/popular', {
       params: {
         ps: 20,
-        pn: this.page + 1,
+        pn: this.page,
       },
       withCredentials: !this.anonymous,
     })
