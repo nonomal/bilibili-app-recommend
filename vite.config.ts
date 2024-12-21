@@ -56,13 +56,18 @@ if (process.env.MINIFY === 'true') minify = true
 
 const miniSuffix = minify ? '.mini' : ''
 const fileName = `${packageName}${miniSuffix}.user.js`
-const metaFileName = process.env.CI ? `${packageName}${miniSuffix}.meta.js` : undefined
+const metaFileName = `${packageName}${miniSuffix}.meta.js`
 
-const baseUrl = 'https://github.com/magicdawn/bilibili-gate/raw/release-nightly/'
-let downloadURL = `${baseUrl}${fileName}`
-let updateURL = `${baseUrl}${metaFileName}`
-if (process.env.RELEASE) {
+let downloadURL: string | undefined
+let updateURL: string | undefined
+if (isDev) {
+  // noop
+} else if (process.env.RELEASE) {
   const baseUrl = 'https://github.com/magicdawn/bilibili-gate/raw/release/'
+  downloadURL = `${baseUrl}${fileName}`
+  updateURL = `${baseUrl}${metaFileName}`
+} else {
+  const baseUrl = 'https://github.com/magicdawn/bilibili-gate/raw/release-nightly/'
   downloadURL = `${baseUrl}${fileName}`
   updateURL = `${baseUrl}${metaFileName}`
 }
@@ -212,7 +217,7 @@ export default defineConfig(({ command, mode }) => ({
 
       build: {
         fileName,
-        metaFileName,
+        metaFileName: process.env.CI ? metaFileName : undefined,
 
         // unpkg is not stable
         // https://greasyfork.org/zh-CN/scripts/443530-bilibili-gate/discussions/197900
