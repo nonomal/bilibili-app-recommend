@@ -58,15 +58,11 @@ const miniSuffix = minify ? '.mini' : ''
 const fileName = `${packageName}${miniSuffix}.user.js`
 const metaFileName = process.env.CI ? `${packageName}${miniSuffix}.meta.js` : undefined
 
-let downloadURL: string | undefined
-let updateURL: string | undefined
-
+const baseUrl = 'https://github.com/magicdawn/bilibili-gate/raw/release-nightly/'
+let downloadURL = `${baseUrl}${fileName}`
+let updateURL = `${baseUrl}${metaFileName}`
 if (process.env.RELEASE) {
   const baseUrl = 'https://github.com/magicdawn/bilibili-gate/raw/release/'
-  downloadURL = `${baseUrl}${fileName}`
-  updateURL = `${baseUrl}${metaFileName}`
-} else if (process.env.RELEASE_NIGHTLY) {
-  const baseUrl = 'https://github.com/magicdawn/bilibili-gate/raw/release-nightly/'
   downloadURL = `${baseUrl}${fileName}`
   updateURL = `${baseUrl}${metaFileName}`
 }
