@@ -55,7 +55,7 @@ export function getServiceFromRegistry<T extends ETab>(
   servicesRegistry: RefStateBox<Partial<ServiceMap>>,
   tab: T,
 ): ServiceMap[T] {
-  const service = servicesRegistry.val[tab]
+  const service = servicesRegistry.value[tab]
   invariant(service, `servicesRegistry.val[tab=${tab}] should not be nil`)
   return service
 }

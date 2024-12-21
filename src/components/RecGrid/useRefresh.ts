@@ -75,27 +75,24 @@ export function useRefresh({
   const refresh: OnRefresh = useMemoizedFn(async (reuse = false) => {
     const start = performance.now()
     await using stack = new AsyncDisposableStack()
-    const serviceMap = servicesRegistry.val
-    const refreshing = refreshingBox.val
 
     // when already in refreshing
-    if (refreshing) {
+    if (refreshingBox.value) {
       /**
        * same tab but conditions changed
        */
       let s: DynamicFeedRecService | FavRecService | HotRecService | undefined
 
-      const debugSameTabConditionsChange = () => {
+      const debugSameTabConditionsChange = () =>
         debug(
           'refresh(): tab=%s [start], current refreshing, sametab but conditions change, abort existing',
           tab,
         )
-      }
 
       // dynamic-feed: conditions changed
       if (
         tab === ETab.DynamicFeed &&
-        (s = serviceMap[ETab.DynamicFeed]) &&
+        (s = servicesRegistry.value[ETab.DynamicFeed]) &&
         !isEqual(s.config, getDynamicFeedServiceConfig())
       ) {
         debugSameTabConditionsChange()
@@ -104,7 +101,7 @@ export function useRefresh({
       // fav: conditions changed
       else if (
         tab === ETab.Fav &&
-        (s = serviceMap[ETab.Fav]) &&
+        (s = servicesRegistry.value[ETab.Fav]) &&
         !isEqual(s.config, getFavServiceConfig())
       ) {
         debugSameTabConditionsChange()
@@ -112,7 +109,11 @@ export function useRefresh({
       }
 
       // has sub-tabs
-      else if (tab === ETab.Hot && (s = serviceMap[ETab.Hot]) && s.subtab !== hotStore.subtab) {
+      else if (
+        tab === ETab.Hot &&
+        (s = servicesRegistry.value[ETab.Hot]) &&
+        s.subtab !== hotStore.subtab
+      ) {
         debug(
           'refresh(): tab=%s [start], current refreshing, sametab but subtab changed, abort existing',
           tab,
@@ -134,10 +135,10 @@ export function useRefresh({
       onUpdateRefreshing?.(val)
     }
 
-    // refresh state
+    // refresh-state
     refreshTsBox.set(Date.now())
     updateRefreshing(true)
-    // refresh result
+    // refresh-result
     setError(undefined)
     itemsBox.set([])
     hasMoreBox.set(true)
@@ -157,6 +158,7 @@ export function useRefresh({
 
     const onError = (err: any) => {
       updateRefreshing(false)
+      hasMoreBox.set(false)
       console.error(err)
       setError(err)
     }
@@ -180,7 +182,7 @@ export function useRefresh({
     }
 
     let willRefresh: boolean
-    const existingService = reuse ? servicesRegistry.val[tab] : undefined
+    const existingService = reuse ? servicesRegistry.value[tab] : undefined
     // reuse existing service
     if (existingService) {
       // cache
@@ -201,12 +203,11 @@ export function useRefresh({
 
     if (willRefresh) {
       const [err, service] = tryit(() => createServiceMap[tab]({ existingService }))()
-      if (err) {
-        onError(err)
-      } else {
-        servicesRegistry.set({ ...servicesRegistry.val, [tab]: service })
-        await doFetch()
-      }
+      if (err) return onError(err)
+      servicesRegistry.set({ ...servicesRegistry.value, [tab]: service })
+
+      const success = await doFetch()
+      if (!success) return
     }
 
     await postAction?.()

@@ -15,7 +15,7 @@ export function useSizeExpression<T>(
       for (const entry of entries) {
         if (entry.target === target && entry.contentRect) {
           const val = _fn(entry)
-          if (!isEqual(box.val, val)) {
+          if (!isEqual(box.value, val)) {
             // console.log('setState', val)
             box.set(val)
           }

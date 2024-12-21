@@ -209,7 +209,7 @@ const VideoCardInner = memo(function VideoCardInner({
     if (!bvid) return // no bvid
     if (!bvid.startsWith('BV')) return // bvid invalid
     if (goto !== 'av') return // scrrenshot only for video
-    if (isVideoshotDataValid(videoDataBox.val?.videoshotJson?.data)) return // already fetched
+    if (isVideoshotDataValid(videoDataBox.value?.videoshotJson?.data)) return // already fetched
 
     const data = await fetchVideoData(bvid)
     videoDataBox.set(data)

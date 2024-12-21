@@ -29,7 +29,7 @@ import { css } from '@emotion/react'
 import { useEventListener, useLatest, usePrevious, useUnmountedRef } from 'ahooks'
 import { Divider } from 'antd'
 import type { AxiosError } from 'axios'
-import { cloneDeep, delay } from 'es-toolkit'
+import { cloneDeep, delay, isEqual } from 'es-toolkit'
 import mitt from 'mitt'
 import ms from 'ms'
 import type { ForwardedRef, ReactNode } from 'react'
@@ -98,25 +98,27 @@ const RecGridInner = memo(function ({
   handlersRef?: ForwardedRef<RecGridRef>
   servicesRegistry: RefStateBox<Partial<ServiceMap>>
 }) {
+  const unmountedRef = useUnmountedRef()
+
   // 已加载完成的 load call count, 类似 page
   const loadCompleteCountBox = useRefStateBox(0)
 
-  const unmountedRef = useUnmountedRef()
-
-  const updateExtraInfo = useMemoizedFn((tab: ETab) => {
+  const updateExtraInfo = useMemoizedFn(() => {
     if (unmountedRef.current) return
-    const info = servicesRegistry.val[tab]?.usageInfo
-    onUpdateExtraInfo?.(info)
+    const service = servicesRegistry.value[tab]
+    if (!service) return
+    onUpdateExtraInfo?.(service.usageInfo)
+    // onUpdateExtraInfo?.(<UsageInfo tab={tab} service={service} />)
   })
 
   const preAction = useMemoizedFn(() => {
     clearActiveIndex()
-    updateExtraInfo(tab)
+    updateExtraInfo()
     onScrollToTop?.()
   })
   const postAction = useMemoizedFn(() => {
     clearActiveIndex()
-    updateExtraInfo(tab)
+    updateExtraInfo()
     loadCompleteCountBox.set(1)
     setTimeout(checkShouldLoadMore)
   })
@@ -155,8 +157,8 @@ const RecGridInner = memo(function ({
         return
       }
 
-      if (refreshingBox.val) return
-      if (loadMoreLocker.current[refreshTsBox.val]) return
+      if (refreshingBox.value) return
+      if (loadMoreLocker.current[refreshTsBox.value]) return
 
       // 场景
       // 当前 Tab: 稍后再看, 点视频进去, 在视频页移除了, 关闭视频页, 回到首页
@@ -179,25 +181,24 @@ const RecGridInner = memo(function ({
 
   // 在 refresh & loadMore 都有可能更改的 state, 需要 useRefState
   const loadMoreLocker = useRef<Record<number, boolean>>({})
-  const lock = useCallback((refreshedAt: number) => {
-    loadMoreLocker.current = { [refreshedAt]: true }
-  }, [])
-  const unlock = useCallback((refreshedAt: number) => {
-    loadMoreLocker.current[refreshedAt] = false
-  }, [])
-  const isLocked = useMemoizedFn((refreshedAt: number) => !!loadMoreLocker.current[refreshedAt])
+  type LockKey = number
+  const lock = useCallback((lockKey: LockKey) => (loadMoreLocker.current = { [lockKey]: true }), [])
+  const unlock = useCallback((lockKey: LockKey) => (loadMoreLocker.current[lockKey] = false), [])
+  const isLocked = useMemoizedFn((lockKey: LockKey) => !!loadMoreLocker.current[lockKey])
 
   const loadMore = useMemoizedFn(async () => {
     if (unmountedRef.current) return
-    if (!hasMoreBox.val) return
+    if (!hasMoreBox.value) return
     if (refreshAbortController.signal.aborted) return
-    if (refreshingBox.val) return
+    if (refreshingBox.value) return
 
-    const refreshTsWhenStart = refreshTsBox.val
-    if (isLocked(refreshTsWhenStart)) return
-    lock(refreshTsWhenStart)
+    const getState = () => ({ refreshTs: refreshTsBox.value })
+    const startingState = getState()
+    const lockKey = startingState.refreshTs
+    if (isLocked(lockKey)) return
+    lock(lockKey)
 
-    let newItems = itemsBox.val
+    let newItems = itemsBox.value
     let newHasMore = true
     let err: any
     try {
@@ -209,33 +210,36 @@ const RecGridInner = memo(function ({
     } catch (e) {
       err = e
     }
-
     if (err) {
-      unlock(refreshTsWhenStart)
+      unlock(lockKey)
       // todo: how to handle this ?
       throw err
     }
 
     // loadMore 发出请求了, 但稍候重新刷新了, setItems 以及后续操作应该 abort
-    if (refreshTsWhenStart !== refreshTsBox.val) {
-      debug(
-        'loadMore: skip update for mismatch refreshedAt, %s != %s',
-        refreshTsWhenStart,
-        refreshTsBox.val,
-      )
-      return
+    {
+      const currentState = getState()
+      if (!isEqual(startingState, currentState)) {
+        debug(
+          'loadMore: skip update for mismatch refresh state, %s != %s',
+          startingState,
+          currentState,
+        )
+        unlock(lockKey)
+        return
+      }
     }
 
     debug(
       'loadMore: seq(%s) len %s -> %s',
-      loadCompleteCountBox.val + 1,
-      itemsBox.val.length,
+      loadCompleteCountBox.value + 1,
+      itemsBox.value.length,
       newItems.length,
     )
     hasMoreBox.set(newHasMore)
     itemsBox.set(newItems)
     loadCompleteCountBox.set((c) => c + 1)
-    unlock(refreshTsWhenStart)
+    unlock(lockKey)
 
     // check
     checkShouldLoadMore()
@@ -338,12 +342,12 @@ const RecGridInner = memo(function ({
       antMessage.success(`已移除: ${data.title}`, 4)
 
       if (tab === ETab.Watchlater) {
-        servicesRegistry.val[tab]?.decreaseTotal()
-        updateExtraInfo(tab)
+        servicesRegistry.value[tab]?.decreaseTotal()
+        // updateExtraInfo(tab)
       }
       if (tab === ETab.Fav) {
-        servicesRegistry.val[tab]?.decreaseTotal()
-        updateExtraInfo(tab)
+        servicesRegistry.value[tab]?.decreaseTotal()
+        // updateExtraInfo(tab)
       }
 
       return newItems
