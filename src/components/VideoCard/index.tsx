@@ -3,6 +3,7 @@ import { useLessFrequentFn } from '$common/hooks/useLessFrequentFn'
 import { useMittOn } from '$common/hooks/useMitt'
 import { useRefStateBox } from '$common/hooks/useRefState'
 import { useDislikedReason } from '$components/ModalDislike'
+import { setGlobalValue } from '$components/RecGrid/unsafe-window-export'
 import type { OnRefresh } from '$components/RecGrid/useRefresh'
 import { ETab } from '$components/RecHeader/tab-enum'
 import { Picture } from '$components/_base/Picture'
@@ -30,7 +31,6 @@ import type { CssProp } from '$utility/type'
 import { css } from '@emotion/react'
 import { useLockFn } from 'ahooks'
 import { Dropdown } from 'antd'
-import { tryit } from 'radash'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { videoCardBorderRadiusValue } from '../css-vars'
 import { useInNormalCardCss } from './card-border-css'
@@ -268,9 +268,7 @@ const VideoCardInner = memo(function VideoCardInner({
     if (!active) return
 
     // update global item data for debug
-    tryit(() => {
-      ;(unsafeWindow as any)[`${APP_KEY_PREFIX}_activeItem`] = item
-    })()
+    setGlobalValue(`${APP_KEY_PREFIX}_activeItem`, item)
 
     // 自动开始预览
     if (settings.autoPreviewWhenKeyboardSelect) {

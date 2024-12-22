@@ -207,6 +207,13 @@ export default defineConfig(({ command, mode }) => ({
           'GM.xmlHttpRequest', // axios gm adapter use
         ],
         'run-at': 'document-end', // default: violentmonkey: document-end; tampermonkey: document-idle
+        'tag': ['bilibili'],
+        ...(command === 'build'
+          ? {
+              // 'inject-into': 'content', // https://violentmonkey.github.io/api/metadata-block/#inject-into
+              // 'sandbox': 'JavaScript', // https://www.tampermonkey.net/documentation.php?locale=en#meta:sandbox
+            }
+          : undefined),
       },
 
       server: {
