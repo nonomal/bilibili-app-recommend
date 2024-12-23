@@ -28,7 +28,7 @@ export const createServiceMap = {
     const useShuffle = settings.watchlaterUseShuffle
     const prevShuffleBvidIndexMap =
       existingService && existingService instanceof WatchlaterRecService
-        ? existingService.getSnapshot().bvidIndexMap
+        ? existingService.getServiceSnapshot().bvidIndexMap
         : undefined
     return new WatchlaterRecService(useShuffle, prevShuffleBvidIndexMap)
   },

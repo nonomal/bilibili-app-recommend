@@ -38,13 +38,10 @@ if (getHasLogined() && getUid()) {
 export class WatchlaterRecService extends BaseTabService<WatchlaterItemExtend | ItemsSeparator> {
   static PAGE_SIZE = 10
 
-  innerService: NormalOrderService | ShuffleOrderService
-  constructor(
-    public useShuffle: boolean,
-    prevShuffleBvidIndexMap?: BvidIndexMap,
-  ) {
+  private innerService: NormalOrderService | ShuffleOrderService
+  constructor(useShuffle: boolean, prevShuffleBvidIndexMap?: BvidIndexMap) {
     super(WatchlaterRecService.PAGE_SIZE)
-    this.innerService = settings.watchlaterUseShuffle
+    this.innerService = useShuffle
       ? new ShuffleOrderService(prevShuffleBvidIndexMap)
       : new NormalOrderService()
   }
@@ -59,16 +56,21 @@ export class WatchlaterRecService extends BaseTabService<WatchlaterItemExtend | 
     return this.innerService.loadMore(abortSignal)
   }
 
-  override get usageInfo(): ReactNode {
-    return this.innerService.usageInfo
+  override get usageInfo() {
+    return <WatchlaterUsageInfo service={this} />
+  }
+
+  get state() {
+    return this.innerService.state
   }
 
   // for remove watchlater card
   decreaseTotal() {
-    this.innerService.total--
+    if (typeof this.innerService.state.total === 'undefined') return
+    this.innerService.state.total--
   }
 
-  getSnapshot() {
+  getServiceSnapshot() {
     const bvidIndexMap =
       this.innerService instanceof ShuffleOrderService
         ? this.innerService.currentBvidIndexMap
@@ -118,9 +120,10 @@ export type BvidIndexMap = Map<string, number>
 
 class ShuffleOrderService implements IService {
   addSeparator = settings.watchlaterAddSeparator
-  loaded = false
-  total: number = 0
   hasMore = true
+
+  loaded = false
+  state = proxy({ total: undefined as number | undefined })
 
   // shuffle related
   keepOrder: boolean
@@ -132,12 +135,6 @@ class ShuffleOrderService implements IService {
     } else {
       this.keepOrder = false
     }
-  }
-
-  get usageInfo(): ReactNode {
-    if (!this.loaded) return
-    const { total } = this
-    return <WatchlaterUsageInfo total={total} />
   }
 
   async loadMore(abortSignal: AbortSignal) {
@@ -191,7 +188,7 @@ class ShuffleOrderService implements IService {
       ].filter(Boolean)
     }
 
-    this.total = rawItems.length
+    this.state.total = rawItems.length
     this.currentBvidIndexMap = new Map(
       itemsWithSeparator
         .filter((x) => x.api !== EApiType.Separator)
@@ -207,16 +204,12 @@ class NormalOrderService implements IService {
   addAtAsc = settings.watchlaterNormalOrderSortByAddAtAsc
 
   firstPageLoaded = false
-  count: number = 0
-
-  get usageInfo(): ReactNode {
-    if (!this.firstPageLoaded) return
-    return <WatchlaterUsageInfo total={this.total} />
-  }
+  state = proxy<{ total?: number }>({
+    total: undefined,
+  })
 
   hasMore: boolean = true
   nextKey: string = ''
-  total: number = 0
 
   async loadMore() {
     if (!this.hasMore) return
@@ -230,9 +223,9 @@ class NormalOrderService implements IService {
     }
 
     this.firstPageLoaded = true
+    this.state.total = result.total
     this.hasMore = result.hasMore
     this.nextKey = result.nextKey
-    this.total = result.total
 
     const items: WatchlaterItemExtend[] = result.items.map(extendItem)
     return this.insertSeparator(items)

@@ -1,6 +1,23 @@
-import type { ETab } from '$components/RecHeader/tab-enum'
+import { ETab } from '$components/RecHeader/tab-enum'
+import type { ComponentProps, FunctionComponent } from 'react'
+import { DynamicFeedUsageInfo } from './dynamic-feed/usage-info'
 import type { ServiceMap } from './service-map'
+import { WatchlaterUsageInfo } from './watchlater/usage-info'
 
+export type UsageInfoFor<T extends ETab> = FunctionComponent<{ service: ServiceMap[T] }>
+export type UsageInfoPropsFor<T extends ETab> = ComponentProps<UsageInfoFor<T>>
+
+const componentMap: Partial<Record<ETab, FunctionComponent<{ service: ServiceMap[ETab] }>>> = {}
+const defineComponent = function <T extends ETab>(tab: T, Component: UsageInfoFor<T>) {
+  componentMap[tab] = Component as UsageInfoFor<ETab>
+}
+
+defineComponent(ETab.DynamicFeed, DynamicFeedUsageInfo)
+defineComponent(ETab.Watchlater, WatchlaterUsageInfo)
+
+/**
+ * current not used
+ */
 export const UsageInfo = memo(function <T extends ETab>({
   tab,
   service,
@@ -8,10 +25,8 @@ export const UsageInfo = memo(function <T extends ETab>({
   tab: T
   service: ServiceMap[T]
 }) {
-  return (
-    <>
-      Tab = {tab}
-      {service?.usageInfo}
-    </>
-  )
+  const C = componentMap[tab]
+  if (!C) return
+  // @ts-ignore
+  return <C service={service} />
 })

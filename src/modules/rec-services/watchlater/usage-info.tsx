@@ -5,18 +5,20 @@ import {
   SwitchSettingItem,
 } from '$components/ModalSettings/setting-item'
 import { useOnRefreshContext } from '$components/RecGrid/useRefresh'
+import type { ETab } from '$components/RecHeader/tab-enum'
 import { IconForAsc, IconForDesc } from '$modules/icon'
 import { useSettingsSnapshot } from '$modules/settings'
 import toast from '$utility/toast'
 import { Space, Tag } from 'antd'
 import { delay } from 'es-toolkit'
+import { useSnapshot } from 'valtio'
 import { ShuffleSettingsItemFor } from '../_shared'
+import type { UsageInfoPropsFor } from '../UsageInfo'
 
 type TagColor = ComponentProps<typeof Tag>['color']
 
-export function WatchlaterUsageInfo({ total }: { total: number }) {
-  // 2023.12: B站的稍后再看上限提升到1000了
-  // 所有这里就不管数量喽
+export function WatchlaterUsageInfo({ service }: UsageInfoPropsFor<ETab.Watchlater>) {
+  const { total } = useSnapshot(service.state)
   const color: TagColor = 'success'
   const title = `共 ${total} 个视频`
 
@@ -64,22 +66,26 @@ export function WatchlaterUsageInfo({ total }: { total: number }) {
     />
   )
 
+  const totalLoaded = typeof total === 'number'
+
   return (
     <Space size={12}>
-      <Tag
-        color={color}
-        style={{
-          marginRight: 0,
-          marginTop: 1,
-          cursor: 'pointer',
-        }}
-        title={title}
-        onClick={() => {
-          toast(`稍后再看: ${title}`)
-        }}
-      >
-        {total}
-      </Tag>
+      {totalLoaded && (
+        <Tag
+          color={color}
+          style={{
+            marginRight: 0,
+            marginTop: 1,
+            cursor: 'pointer',
+          }}
+          title={title}
+          onClick={() => {
+            toast(`稍后再看: ${title}`)
+          }}
+        >
+          {total}
+        </Tag>
+      )}
 
       {/* {switchDisplay} */}
       {/* {checkboxDisplay} */}
