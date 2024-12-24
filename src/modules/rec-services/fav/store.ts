@@ -163,13 +163,3 @@ const updateCollectionList = createUpdateDataFunction({
     }
   },
 })
-
-/**
- * side effects
- */
-
-// 通过 query 查看 fav-folder, 需要先拉取 fav-folder, 作为 entry
-// fav-collection 只需要 id, 不用等待
-if (SHOW_FAV_TAB_ONLY && QUERY_FAV_FOLDER_ID) {
-  await updateFolderList()
-}

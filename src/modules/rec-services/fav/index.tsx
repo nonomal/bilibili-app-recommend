@@ -20,15 +20,29 @@ export function getFavServiceConfig() {
     itemsOrder: getSavedOrder(snap.selectedKey, snap.savedOrderMap as Map<string, FavItemsOrder>),
 
     selectedFavFolderId: snap.selectedFavFolderId,
-    selectedFavFolder: snap.selectedFavFolder,
-
     selectedFavCollectionId: snap.selectedFavCollectionId,
-    selectedFavCollection: snap.selectedFavCollection,
 
     // from settings
     addSeparator: settings.fav.addSeparator,
     excludedFolderIds: settings.fav.excludedFolderIds,
   }
+}
+
+type FavServiceConfigExtra = ReturnType<typeof getFavServiceConfigExtra>
+function getFavServiceConfigExtra(config: FavServiceConfig) {
+  const ret = {
+    ...config,
+    get viewingAll() {
+      return config.selectedKey === 'all'
+    },
+    get viewingSomeFolder() {
+      return typeof config.selectedFavFolderId === 'number'
+    },
+    get viewingSomeCollection() {
+      return typeof config.selectedFavCollectionId === 'number'
+    },
+  }
+  return ret
 }
 
 export interface IFavInnerService {
@@ -41,22 +55,26 @@ export interface IFavInnerService {
 export class FavRecService extends BaseTabService<FavItemExtend | ItemsSeparator> {
   static PAGE_SIZE = FAV_PAGE_SIZE
 
+  config: FavServiceConfigExtra
   innerService: IFavInnerService
-  constructor(public config: FavServiceConfig) {
+  constructor(config: FavServiceConfig) {
     super(FavRecService.PAGE_SIZE)
-    if (this.viewingAll) {
+    this.config = getFavServiceConfigExtra(config)
+
+    const { viewingAll, viewingSomeFolder, viewingSomeCollection } = this.config
+    if (viewingAll) {
       this.innerService = new FavAllService(
         this.config.addSeparator,
         this.config.itemsOrder,
         this.config.excludedFolderIds,
       )
-    } else if (this.viewingSomeFolder) {
+    } else if (viewingSomeFolder) {
       this.innerService = new FavFolderService(
-        this.config.selectedFavFolder!,
+        this.config.selectedFavFolderId!,
         this.config.addSeparator,
         this.config.itemsOrder,
       )
-    } else if (this.viewingSomeCollection) {
+    } else if (viewingSomeCollection) {
       this.innerService = new FavCollectionService(
         this.config.selectedFavCollectionId!,
         this.config.addSeparator,
@@ -65,15 +83,6 @@ export class FavRecService extends BaseTabService<FavItemExtend | ItemsSeparator
     } else {
       throw new Error('unexpected case!')
     }
-  }
-  get viewingAll() {
-    return this.config.selectedKey === 'all'
-  }
-  get viewingSomeFolder() {
-    return typeof this.config.selectedFavFolderId === 'number'
-  }
-  get viewingSomeCollection() {
-    return typeof this.config.selectedFavCollectionId === 'number'
   }
 
   override get usageInfo(): ReactNode {
@@ -90,18 +99,18 @@ export class FavRecService extends BaseTabService<FavItemExtend | ItemsSeparator
 
   // for remove card
   decreaseTotal() {
-    if (this.viewingAll) {
+    if (this.config.viewingAll) {
       // TODO: this is not working, since <FavUsageInfo> is calculating inside itself
       ;(this.innerService as FavAllService).state.totalCountInFavFolders -= 1
     }
 
     // viewingSomeFolder
-    else if (this.viewingSomeFolder && this.config.selectedFavFolder) {
-      updateFavFolderMediaCount(this.config.selectedFavFolder.id, (x) => x - 1)
+    else if (this.config.viewingSomeFolder && this.config.selectedFavFolderId) {
+      updateFavFolderMediaCount(this.config.selectedFavFolderId, (x) => x - 1)
     }
 
     // viewingSomeCollection
-    else if (this.viewingSomeCollection && this.config.selectedFavCollection) {
+    else if (this.config.viewingSomeCollection && this.config.selectedFavCollectionId) {
       // noop, not supported yet
     }
   }

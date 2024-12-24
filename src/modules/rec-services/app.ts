@@ -90,9 +90,7 @@ export class AppRecService extends BaseTabService<RecItemType> {
         selectedKey: 'all',
         itemsOrder: FavItemsOrder.Shuffle,
         selectedFavFolderId: undefined,
-        selectedFavFolder: undefined,
         selectedFavCollectionId: undefined,
-        selectedFavCollection: undefined,
         addSeparator: false,
       } satisfies Partial<FavServiceConfig>)
       favService = new FavRecService(config)

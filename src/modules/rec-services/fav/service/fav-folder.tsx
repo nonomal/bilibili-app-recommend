@@ -7,12 +7,14 @@ import { IconForOpenExternalLink, IconForPlayer } from '$modules/icon'
 import { isWebApiSuccess, request } from '$request'
 import { wrapWithIdbCache } from '$utility/idb'
 import toast from '$utility/toast'
-import { shuffle, uniqBy } from 'es-toolkit'
+import { invariant, shuffle, uniqBy } from 'es-toolkit'
 import ms from 'ms'
+import type { SetNonNullable } from 'type-fest'
+import { snapshot } from 'valtio'
 import { FavItemsOrder, handleItemsOrder } from '../fav-enum'
 import { formatFavFolderUrl, formatFavPlaylistUrl } from '../fav-url'
 import { type IFavInnerService } from '../index'
-import { updateFavFolderMediaCount } from '../store'
+import { favStore, updateFavFolderMediaCount } from '../store'
 import type { FavItemExtend } from '../types'
 import type { FavFolder } from '../types/folders/list-all-folders'
 import type { FavFolderDetailInfo, ResourceListJSON } from '../types/folders/list-folder-items'
@@ -50,22 +52,18 @@ function isFavFolderApiSuppoetedOrder(order: FavItemsOrder): order is FavFolderA
 }
 
 export class FavFolderService implements IFavInnerService {
-  basicService: FavFolderBasicService
   needLoadAll: boolean
   constructor(
-    public entry: FavFolder,
+    public folderId: number,
     public addSeparator: boolean,
     public itemsOrder: FavItemsOrder,
   ) {
     if (this.itemsOrder === FavItemsOrder.Default) {
       throw new Error('this should not happen!')
     }
-
     if (isFavFolderApiSuppoetedOrder(this.itemsOrder)) {
-      this.basicService = new FavFolderBasicService(this.entry, this.itemsOrder)
       this.needLoadAll = false
     } else {
-      this.basicService = new FavFolderBasicService(this.entry)
       this.needLoadAll = true
     }
   }
@@ -76,20 +74,45 @@ export class FavFolderService implements IFavInnerService {
       if (!this.allItemsLoaded) return true
       return !!this.bufferQueue.length
     } else {
-      return this.basicService.hasMore
+      if (!this.innerService) return true
+      return this.innerService.hasMore
     }
   }
 
   private separatorAdded = false
   private get separator(): ItemsSeparator {
+    this.assertInnerService()
     return {
       api: EApiType.Separator,
-      uniqId: `fav-folder-${this.entry.id}`,
-      content: <FavFolderSeparator service={this.basicService} />,
+      uniqId: `fav-folder-${this.folderId}`,
+      content: <FavFolderSeparator service={this.innerService} />,
+    }
+  }
+
+  entry?: FavFolder
+  innerService: FavFolderBasicService | undefined
+  // https://www.totaltypescript.com/tips/use-assertion-functions-inside-classes
+  assertInnerService(): asserts this is SetNonNullable<this, 'innerService'> {
+    invariant(this.innerService, 'this.innerService should not be undefined')
+  }
+
+  async createService() {
+    if (this.innerService) return
+
+    await favStore.updateList()
+    const entry = snapshot(favStore.favFolders).find((f) => f.id === this.folderId)
+    invariant(entry, `favStore.favFolders should have this entry[fid=${this.folderId}]`)
+    this.entry = entry
+
+    if (isFavFolderApiSuppoetedOrder(this.itemsOrder)) {
+      this.innerService = new FavFolderBasicService(entry, this.itemsOrder)
+    } else {
+      this.innerService = new FavFolderBasicService(entry)
     }
   }
 
   async loadMore(abortSignal: AbortSignal) {
+    if (!this.innerService) await this.createService()
     if (!this.hasMore) return
 
     if (this.addSeparator && !this.separatorAdded) {
@@ -113,7 +136,7 @@ export class FavFolderService implements IFavInnerService {
 
     // normal
     else {
-      const ret = await this.basicService.loadMore(abortSignal)
+      const ret = await this.innerService?.loadMore(abortSignal)
       if (ret?.length) await this.addToFetchAllItemsWithCache(ret)
       this.runSideEffects()
       return ret
@@ -129,9 +152,10 @@ export class FavFolderService implements IFavInnerService {
     this.runSideEffects()
   }
   private __fetchAllItems = async (abortSignal: AbortSignal = new AbortController().signal) => {
+    this.assertInnerService()
     const allItems: FavItemExtend[] = []
-    while (this.basicService.hasMore && !abortSignal.aborted) {
-      const items = (await this.basicService.loadMore(abortSignal)) || []
+    while (this.innerService.hasMore && !abortSignal.aborted) {
+      const items = (await this.innerService.loadMore(abortSignal)) || []
       allItems.push(...items)
     }
     return allItems
@@ -140,7 +164,7 @@ export class FavFolderService implements IFavInnerService {
   private fetchAllItemsWithCache = wrapWithIdbCache({
     fn: this.__fetchAllItems,
     tableName: 'fav-folder-all-items',
-    generateKey: () => `${this.entry.id}`,
+    generateKey: () => `${this.folderId}`,
     ttl: ms('5min'),
   })
   private addToFetchAllItemsWithCache = async (items: FavItemExtend[]) => {
@@ -154,8 +178,9 @@ export class FavFolderService implements IFavInnerService {
   }
 
   private runSideEffects() {
-    if (typeof this.basicService.info?.media_count === 'number') {
-      updateFavFolderMediaCount(this.entry.id, this.basicService.info.media_count)
+    this.assertInnerService()
+    if (typeof this.innerService.info?.media_count === 'number') {
+      updateFavFolderMediaCount(this.folderId, this.innerService.info.media_count)
     }
   }
 

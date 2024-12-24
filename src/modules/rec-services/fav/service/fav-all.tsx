@@ -115,13 +115,13 @@ export class FavAllService implements IFavInnerService {
       let itemsOrder = this.itemsOrder
       if (itemsOrder === FavItemsOrder.Default) itemsOrder = FavItemsOrder.FavTimeDesc // 收藏夹没有 `默认`
       this.allServices.push(
-        ...folders.map((f) => new FavFolderService(f, this.addSeparator, itemsOrder)),
+        ...folders.map((f) => new FavFolderService(f.id, this.addSeparator, itemsOrder)),
       )
     }
     {
       this.allServices.push(
         ...favCollections.map(
-          (f) => new FavCollectionService(f.id, this.addSeparator, this.itemsOrder),
+          (c) => new FavCollectionService(c.id, this.addSeparator, this.itemsOrder),
         ),
       )
     }
