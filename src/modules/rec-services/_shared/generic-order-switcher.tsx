@@ -46,9 +46,8 @@ export const GenericOrderSwitcher = function <T extends string | number>({
   })
 
   const dropdownMenuItems = useMemo(() => {
-    const orders = list.filter((x) => x !== 'divider')
     return defineAntMenus(
-      orders.map((x) => {
+      list.map((x) => {
         if (x === 'divider') return { type: 'divider' } // divider
         const { icon, label } = listDisplayConfig[x]
         return {

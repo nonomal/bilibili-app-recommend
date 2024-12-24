@@ -10,7 +10,6 @@ import {
 } from '$modules/icon'
 import { usePopupContainer } from '$modules/rec-services/_base'
 import { GenericOrderSwitcher } from '$modules/rec-services/_shared/generic-order-switcher'
-import { defineAntMenus } from '$utility/antd'
 import { delay } from 'es-toolkit'
 import type { ElementRef, ReactNode } from 'react'
 import { useSnapshot } from 'valtio'
@@ -83,35 +82,6 @@ const MenuItemsConfig: Record<FavSelectedKeyPrefix, (FavItemsOrder | 'divider')[
 function getMenuItemsFor(selectedKey: string) {
   const prefix = selectedKey.split(':')[0] as FavSelectedKeyPrefix
   return MenuItemsConfig[prefix] || Object.values(FavItemsOrder)
-}
-
-function useDropdownMenus({
-  selectedKey,
-  onRefresh,
-}: {
-  selectedKey: string
-  onRefresh?: () => void
-}) {
-  return useMemo(() => {
-    const orders = getMenuItemsFor(selectedKey)
-    return defineAntMenus(
-      orders.map((x) => {
-        // divider
-        if (x === 'divider') return { type: 'divider' }
-        const { icon, label } = FavItemsOrderConfig[x]
-        return {
-          key: x,
-          icon,
-          label,
-          async onClick() {
-            favStore.savedOrderMap.set(selectedKey, x)
-            await delay(100)
-            onRefresh?.()
-          },
-        }
-      }),
-    )
-  }, [selectedKey, onRefresh])
 }
 
 function _getFallbackOrder(selectedKey: string) {
