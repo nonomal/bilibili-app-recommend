@@ -62,7 +62,7 @@ const WatchlaterItemsOrderConfig: Record<
   },
   [WatchlaterItemsOrder.AddTimeAsc]: {
     icon: <IconForTimestamp />,
-    label: withAscIcon('最近添加'),
+    label: withAscIcon('最早添加'),
     helpInfo: '按添加时间增序',
   },
   [WatchlaterItemsOrder.Shuffle]: {
