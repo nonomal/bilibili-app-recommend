@@ -193,7 +193,7 @@ export function FavItemsOrderSwitcher() {
   const [open, setOpen] = useState(false)
 
   return (
-    <>
+    <span className='inline-flex items-center'>
       <Dropdown
         // open
         open={open}
@@ -221,6 +221,6 @@ export function FavItemsOrderSwitcher() {
         1. 点击/下拉切换 <br />
         2. 按住 <kbd>Shift</kbd> 键点击逆序切换 <br />
       </HelpInfo>
-    </>
+    </span>
   )
 }

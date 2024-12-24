@@ -3,7 +3,7 @@ import { useOnRefreshContext } from '$components/RecGrid/useRefresh'
 import { settings, useSettingsSnapshot } from '$modules/settings'
 import { defineAntMenus, type AntMenuItem } from '$utility/antd'
 import { css } from '@emotion/react'
-import { Button, Dropdown, Popover, Space, Tag, Transfer } from 'antd'
+import { Button, Dropdown, Popover, Tag, Transfer } from 'antd'
 import type { TransferDirection } from 'antd/es/transfer'
 import { delay, groupBy } from 'es-toolkit'
 import type { Key } from 'react'
@@ -162,13 +162,13 @@ export function FavUsageInfo({ extraContent }: { extraContent?: ReactNode }) {
   // #endregion
 
   return (
-    <Space ref={ref} size={10}>
+    <div ref={ref} className='flex items-center gap-x-10px'>
       {/* scope selction */}
       {scopeSelectionDropdown}
 
       {/* extra */}
       {extraContent}
-    </Space>
+    </div>
   )
 }
 
@@ -243,6 +243,7 @@ export function ViewingAllExcludeFolderConfig({
         css={css`
           cursor: pointer;
           font-size: 12px;
+          margin-inline: 0;
         `}
       >
         收藏夹({foldersCount}) 收藏({totalCountInFavFolders})
