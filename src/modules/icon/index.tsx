@@ -74,3 +74,23 @@ export function IconForWatchlater(props: SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+export const clsIconTextWrapper = 'inline-flex items-center justify-center line-height-[0]'
+
+export function withDescIcon(label: string) {
+  return (
+    <span className={clsx(clsIconTextWrapper, 'gap-1px')}>
+      {label}
+      <IconForDesc {...size(16)} />
+    </span>
+  )
+}
+
+export function withAscIcon(label: string) {
+  return (
+    <span className={clsx(clsIconTextWrapper, 'gap-1px')}>
+      {label}
+      <IconForAsc {...size(16)} />
+    </span>
+  )
+}

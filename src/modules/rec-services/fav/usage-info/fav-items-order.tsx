@@ -1,43 +1,21 @@
-import { buttonOpenCss, usePopoverBorderColor } from '$common/emotion-css'
-import { HelpInfo } from '$components/_base/HelpInfo'
 import { useOnRefreshContext } from '$components/RecGrid/useRefresh'
-import { styled } from '$libs'
 import {
-  IconForAsc,
   IconForDefaultOrder,
-  IconForDesc,
   IconForFav,
   IconForPlayer,
   IconForShuffle,
   IconForTimestamp,
+  withAscIcon,
+  withDescIcon,
 } from '$modules/icon'
 import { usePopupContainer } from '$modules/rec-services/_base'
+import { GenericOrderSwitcher } from '$modules/rec-services/_shared/generic-order-switcher'
 import { defineAntMenus } from '$utility/antd'
-import { Button, Dropdown } from 'antd'
 import { delay } from 'es-toolkit'
-import type { CSSProperties, MouseEvent, ReactNode } from 'react'
+import type { ElementRef, ReactNode } from 'react'
 import { useSnapshot } from 'valtio'
 import { FavItemsOrder } from '../fav-enum'
 import { favStore, type FavSelectedKeyPrefix } from '../store'
-
-const clsIconTextWrapper = 'inline-flex items-center justify-center line-height-[0]'
-
-function withDescIcon(label: string) {
-  return (
-    <span className={clsx(clsIconTextWrapper, 'gap-1px')}>
-      {label}
-      <IconForDesc {...size(16)} />
-    </span>
-  )
-}
-function withAscIcon(label: string) {
-  return (
-    <span className={clsx(clsIconTextWrapper, 'gap-1px')}>
-      {label}
-      <IconForAsc {...size(16)} />
-    </span>
-  )
-}
 
 // 需要统一尺寸
 const clsIconSize = 'size-16px'
@@ -154,73 +132,26 @@ export function useSavedOrder(selectedKey: string, savedOrderMap: Map<string, Fa
   return useMemo(() => getSavedOrder(selectedKey, savedOrderMap), [savedOrderMap, selectedKey])
 }
 
-const clsMenuRoot = styled.createClass`
-  .ant-dropdown &.ant-dropdown-menu .ant-dropdown-menu-item {
-    font-size: 13px; // same as Button
-    justify-content: flex-start;
-    .ant-dropdown-menu-title-content {
-      flex-shrink: 0;
-    }
-  }
-`
-
 export function FavItemsOrderSwitcher() {
   const onRefresh = useOnRefreshContext()
+  const { ref, getPopupContainer } = usePopupContainer<ElementRef<'span'>>()
+
   const { selectedKey, savedOrderMap } = useSnapshot(favStore)
-  const { ref, getPopupContainer } = usePopupContainer<HTMLButtonElement>()
-
-  const current = useSavedOrder(selectedKey, savedOrderMap)
-  const { icon, label } = FavItemsOrderConfig[current]
-
-  const onToggle = useMemoizedFn(async (e: MouseEvent) => {
-    const allowed = getMenuItemsFor(selectedKey).filter((x) => x !== 'divider')
-    const index = allowed.indexOf(current)
-    if (index === -1) return
-    const nextIndex = (index + (e.shiftKey ? -1 : 1) + allowed.length) % allowed.length
-    const next = allowed[nextIndex]
-    favStore.savedOrderMap.set(selectedKey, next)
-    await delay(100)
-    onRefresh?.()
-  })
-
-  const dropdownMenuItems = useDropdownMenus({ selectedKey, onRefresh })
-  const dropdownStyle: CSSProperties = {
-    // width: 'max-content',
-    overscrollBehavior: 'contain',
-    border: `1px solid ${usePopoverBorderColor()}`,
-  }
-
-  const [open, setOpen] = useState(false)
+  const value = useSavedOrder(selectedKey, savedOrderMap)
+  const menuItems = useMemo(() => getMenuItemsFor(selectedKey), [selectedKey])
 
   return (
-    <span className='inline-flex items-center'>
-      <Dropdown
-        // open
-        open={open}
-        onOpenChange={setOpen}
-        getPopupContainer={getPopupContainer}
-        menu={{
-          items: dropdownMenuItems,
-          style: dropdownStyle,
-          className: clsMenuRoot,
-          selectedKeys: [current],
-        }}
-        placement='bottomRight'
-      >
-        <Button
-          ref={ref}
-          onClick={onToggle}
-          css={[open && buttonOpenCss]}
-          icon={icon}
-          className='gap-8px px-16px'
-        >
-          {label}
-        </Button>
-      </Dropdown>
-      <HelpInfo>
-        1. 点击/下拉切换 <br />
-        2. 按住 <kbd>Shift</kbd> 键点击逆序切换 <br />
-      </HelpInfo>
-    </span>
+    <GenericOrderSwitcher<FavItemsOrder>
+      value={value}
+      onChange={async (next) => {
+        favStore.savedOrderMap.set(selectedKey, next)
+        await delay(100)
+        onRefresh?.()
+      }}
+      list={menuItems}
+      listDisplayConfig={FavItemsOrderConfig}
+      $ref={ref}
+      dropdownProps={{ getPopupContainer }}
+    />
   )
 }

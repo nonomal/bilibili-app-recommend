@@ -1,29 +1,19 @@
-import { explainForFlag } from '$components/ModalSettings/index.shared'
-import {
-  ButtonSettingItem,
-  CheckboxSettingItem,
-  SwitchSettingItem,
-} from '$components/ModalSettings/setting-item'
 import { useOnRefreshContext } from '$components/RecGrid/useRefresh'
 import type { ETab } from '$components/RecHeader/tab-enum'
-import { IconForAsc, IconForDesc } from '$modules/icon'
-import { useSettingsSnapshot } from '$modules/settings'
+import { IconForShuffle, IconForTimestamp, withAscIcon, withDescIcon } from '$modules/icon'
+import { settings, useSettingsSnapshot } from '$modules/settings'
 import toast from '$utility/toast'
 import { Space, Tag } from 'antd'
 import { delay } from 'es-toolkit'
+import type { ElementRef, ReactNode } from 'react'
 import { useSnapshot } from 'valtio'
-import { ShuffleSettingsItemFor } from '../_shared'
+import { usePopupContainer } from '../_base'
+import { GenericOrderSwitcher } from '../_shared/generic-order-switcher'
 import type { UsageInfoPropsFor } from '../UsageInfo'
-
-type TagColor = ComponentProps<typeof Tag>['color']
+import { WatchlaterItemsOrder } from './watchlater-enum'
 
 export function WatchlaterUsageInfo({ service }: UsageInfoPropsFor<ETab.Watchlater>) {
-  const { total } = useSnapshot(service.state)
-  const color: TagColor = 'success'
-  const title = `共 ${total} 个视频`
-
-  const { watchlaterUseShuffle, watchlaterAddSeparator, watchlaterNormalOrderSortByAddAtAsc } =
-    useSettingsSnapshot()
+  const { watchlaterAddSeparator, watchlaterItemsOrder } = useSettingsSnapshot()
   const onRefresh = useOnRefreshContext()
 
   // 切换 添加分割线 设置, 即时生效
@@ -32,88 +22,92 @@ export function WatchlaterUsageInfo({ service }: UsageInfoPropsFor<ETab.Watchlat
       await delay(100)
       onRefresh?.()
     })()
-  }, [watchlaterUseShuffle, watchlaterAddSeparator, watchlaterNormalOrderSortByAddAtAsc])
+  }, [watchlaterAddSeparator, watchlaterItemsOrder])
 
-  const switchDisplay = (
-    <SwitchSettingItem
-      configPath={'watchlaterUseShuffle'}
-      checkedChildren='随机顺序: 开'
-      unCheckedChildren='随机顺序: 关'
-      tooltip={<>随机顺序不包括近期添加的视频</>}
-    />
+  const { total } = useSnapshot(service.state)
+  const title = `共 ${total} 个视频`
+  const totalTag = typeof total === 'number' && (
+    <Tag
+      color='success'
+      style={{
+        marginRight: 0,
+        marginTop: 1,
+        cursor: 'pointer',
+      }}
+      title={title}
+      onClick={() => {
+        toast(`稍后再看: ${title}`)
+      }}
+    >
+      {total}
+    </Tag>
   )
-  const checkboxDisplay = (
-    <CheckboxSettingItem
-      configPath={'watchlaterUseShuffle'}
-      label='随机顺序'
-      tooltip={
-        <>
-          {explainForFlag('随机顺序', '默认添加顺序')}
-          NOTE: 随机顺序不包括近期添加的视频
-        </>
-      }
-    />
-  )
-  const btnDisplay = (
-    <ShuffleSettingsItemFor
-      configPath='watchlaterUseShuffle'
-      tooltip={
-        <>
-          随机顺序不包括近期添加的稍后再看 <br />
-          近期: 最近48小时内
-        </>
-      }
-    />
-  )
-
-  const totalLoaded = typeof total === 'number'
 
   return (
     <Space size={12}>
-      {totalLoaded && (
-        <Tag
-          color={color}
-          style={{
-            marginRight: 0,
-            marginTop: 1,
-            cursor: 'pointer',
-          }}
-          title={title}
-          onClick={() => {
-            toast(`稍后再看: ${title}`)
-          }}
-        >
-          {total}
-        </Tag>
-      )}
-
-      {/* {switchDisplay} */}
-      {/* {checkboxDisplay} */}
-      {btnDisplay}
-
-      {!watchlaterUseShuffle && (
-        <ButtonSettingItem
-          configPath='watchlaterNormalOrderSortByAddAtAsc'
-          tooltip={
-            <>
-              最近添加: 按添加时间倒序 <br />
-              最早添加: 按添加时间增序 <br />
-            </>
-          }
-          checkedChildren={
-            <>
-              <IconForAsc {...size(18)} />
-              最早添加
-            </>
-          }
-          unCheckedChildren={
-            <>
-              <IconForDesc {...size(18)} />
-              最近添加
-            </>
-          }
-        />
-      )}
+      {totalTag}
+      <WatchlaterOrderSwitcher />
     </Space>
+  )
+}
+
+const WatchlaterItemsOrderConfig: Record<
+  WatchlaterItemsOrder,
+  { icon?: ReactNode; label?: ReactNode; helpInfo?: ReactNode }
+> = {
+  [WatchlaterItemsOrder.AddTimeDesc]: {
+    icon: <IconForTimestamp />,
+    label: withDescIcon('最近添加'),
+    helpInfo: '按添加时间倒序',
+  },
+  [WatchlaterItemsOrder.AddTimeAsc]: {
+    icon: <IconForTimestamp />,
+    label: withAscIcon('最近添加'),
+    helpInfo: '按添加时间增序',
+  },
+  [WatchlaterItemsOrder.Shuffle]: {
+    icon: <IconForShuffle />,
+    label: '随机顺序',
+    helpInfo: '不包括近期添加的稍后再看, 近期: 最近48小时内',
+  },
+}
+
+const list = Object.values(WatchlaterItemsOrder)
+
+const extraHelpInfo = (
+  <>
+    <hr className='my-8px' />
+    <div className='flex flex-col gap-y-4px'>
+      {list.map((x) => {
+        const { icon, label, helpInfo } = WatchlaterItemsOrderConfig[x]
+        return (
+          <div key={x} className={'flex items-center justify-left line-height-[0] gap-x-4px'}>
+            {icon} <span className='min-w-80px'>{label}</span> :&nbsp;&nbsp; {helpInfo}
+          </div>
+        )
+      })}
+    </div>
+  </>
+)
+
+function WatchlaterOrderSwitcher() {
+  const onRefresh = useOnRefreshContext()
+  const { ref, getPopupContainer } = usePopupContainer<ElementRef<'span'>>()
+  const { watchlaterItemsOrder } = useSettingsSnapshot()
+
+  return (
+    <GenericOrderSwitcher<WatchlaterItemsOrder>
+      value={watchlaterItemsOrder}
+      onChange={async (next) => {
+        settings.watchlaterItemsOrder = next
+        await delay(100)
+        onRefresh?.()
+      }}
+      list={list}
+      listDisplayConfig={WatchlaterItemsOrderConfig}
+      $ref={ref}
+      dropdownProps={{ getPopupContainer }}
+      extraHelpInfo={extraHelpInfo}
+    />
   )
 }

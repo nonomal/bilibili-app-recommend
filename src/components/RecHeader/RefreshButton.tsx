@@ -1,6 +1,7 @@
 import type { OnRefresh } from '$components/RecGrid/useRefresh'
 import { favStore } from '$modules/rec-services/fav/store'
 import { isHotTabUsingShuffle } from '$modules/rec-services/hot'
+import { WatchlaterItemsOrder } from '$modules/rec-services/watchlater/watchlater-enum'
 import { useSettingsSnapshot } from '$modules/settings'
 import { shouldDisableShortcut } from '$utility/dom'
 import { css } from '@emotion/react'
@@ -49,13 +50,13 @@ export const RefreshButton = forwardRef<RefreshButtonActions, RefreshButtonProps
   )
 
   const tab = useCurrentUsingTab()
-  const { watchlaterUseShuffle, popularWeeklyUseShuffle } = useSettingsSnapshot()
+  const { watchlaterItemsOrder, popularWeeklyUseShuffle } = useSettingsSnapshot()
   const { usingShuffle: favUsingShuffle } = useSnapshot(favStore)
   const text =
     tab === ETab.AppRecommend ||
     tab === ETab.PcRecommend ||
     tab === ETab.KeepFollowOnly ||
-    (tab === ETab.Watchlater && watchlaterUseShuffle) ||
+    (tab === ETab.Watchlater && watchlaterItemsOrder === WatchlaterItemsOrder.Shuffle) ||
     (tab === ETab.Fav && favUsingShuffle) ||
     (tab === ETab.Hot && isHotTabUsingShuffle(popularWeeklyUseShuffle))
       ? '换一换'

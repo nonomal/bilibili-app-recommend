@@ -3,6 +3,7 @@ import { ETab } from '$components/RecHeader/tab-enum'
 import { VideoLinkOpenMode } from '$components/VideoCard/index.shared'
 import { EAppApiDevice } from '$define/index.shared'
 import { reciveGmValueUpdatesFromOtherTab } from '$modules/gm'
+import { WatchlaterItemsOrder } from '$modules/rec-services/watchlater/watchlater-enum'
 import {
   getLeafPaths,
   type BooleanPaths,
@@ -107,9 +108,8 @@ export const initialSettings = {
   /**
    * tab=watchlater
    */
-  watchlaterUseShuffle: false, // 打乱顺序
   watchlaterAddSeparator: true, // 添加 "近期" / "更早" 分割线
-  watchlaterNormalOrderSortByAddAtAsc: false,
+  watchlaterItemsOrder: WatchlaterItemsOrder.AddTimeDesc, // 顺序
 
   /**
    * tab=fav

@@ -90,11 +90,6 @@ export function TabPaneRecTabsConfig() {
               </div>
               <Space size={10}>
                 <CheckboxSettingItem
-                  configPath='watchlaterUseShuffle'
-                  label='随机顺序'
-                  tooltip='不包括近期添加的「稍后再看」'
-                />
-                <CheckboxSettingItem
                   configPath='watchlaterAddSeparator'
                   label='添加分割线'
                   tooltip='添加「近期」「更早」分割线'

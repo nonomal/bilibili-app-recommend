@@ -10,6 +10,7 @@ import { HotRecService } from './hot'
 import { LiveRecService } from './live'
 import { PcRecService } from './pc'
 import { WatchlaterRecService } from './watchlater'
+import { WatchlaterItemsOrder } from './watchlater/watchlater-enum'
 
 export const REC_TABS = [ETab.KeepFollowOnly, ETab.PcRecommend, ETab.AppRecommend] satisfies ETab[]
 
@@ -25,7 +26,7 @@ export const createServiceMap = {
   [ETab.KeepFollowOnly]: () => new PcRecService(true),
   [ETab.DynamicFeed]: () => new DynamicFeedRecService(getDynamicFeedServiceConfig()),
   [ETab.Watchlater]: ({ existingService }) => {
-    const useShuffle = settings.watchlaterUseShuffle
+    const useShuffle = settings.watchlaterItemsOrder === WatchlaterItemsOrder.Shuffle
     const prevShuffleBvidIndexMap =
       existingService && existingService instanceof WatchlaterRecService
         ? existingService.getServiceSnapshot().bvidIndexMap

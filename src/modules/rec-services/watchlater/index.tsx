@@ -5,13 +5,14 @@ import { getHasLogined, getUid } from '$utility/cookie'
 import { whenIdle } from '$utility/dom'
 import toast from '$utility/toast'
 import dayjs from 'dayjs'
-import { orderBy, shuffle } from 'es-toolkit'
+import { invariant, orderBy, shuffle } from 'es-toolkit'
 import { proxy, useSnapshot } from 'valtio'
 import { proxySet } from 'valtio/utils'
 import { BaseTabService, type IService } from '../_base'
 import { getAllWatchlaterItemsV2, getWatchlaterItemFrom } from './api'
 import { type WatchlaterItem } from './types'
 import { WatchlaterUsageInfo } from './usage-info'
+import { WatchlaterItemsOrder } from './watchlater-enum'
 
 export const watchlaterState = proxy({
   updatedAt: 0,
@@ -43,7 +44,7 @@ export class WatchlaterRecService extends BaseTabService<WatchlaterItemExtend | 
     super(WatchlaterRecService.PAGE_SIZE)
     this.innerService = useShuffle
       ? new ShuffleOrderService(prevShuffleBvidIndexMap)
-      : new NormalOrderService()
+      : new NormalOrderService(settings.watchlaterItemsOrder, settings.watchlaterAddSeparator)
   }
 
   override get hasMoreExceptQueue() {
@@ -200,8 +201,12 @@ class ShuffleOrderService implements IService {
 
 class NormalOrderService implements IService {
   // configs
-  addSeparator = settings.watchlaterAddSeparator
-  addAtAsc = settings.watchlaterNormalOrderSortByAddAtAsc
+  constructor(
+    private order: WatchlaterItemsOrder,
+    private addSeparator: boolean,
+  ) {
+    invariant(order !== WatchlaterItemsOrder.Shuffle, 'shuffle not supported in NormalOrderService')
+  }
 
   firstPageLoaded = false
   state = proxy<{ total?: number }>({
@@ -214,7 +219,10 @@ class NormalOrderService implements IService {
   async loadMore() {
     if (!this.hasMore) return
 
-    const result = await getWatchlaterItemFrom(this.nextKey, this.addAtAsc)
+    const result = await getWatchlaterItemFrom(
+      this.nextKey,
+      this.order === WatchlaterItemsOrder.AddTimeAsc,
+    )
     // error
     if (typeof result.err !== 'undefined') {
       this.hasMore = false
@@ -243,7 +251,7 @@ class NormalOrderService implements IService {
     const needRecentSeparator = items.some((item) => item.add_at >= recentGate)
 
     // ASC
-    if (this.addAtAsc) {
+    if (this.order === WatchlaterItemsOrder.AddTimeAsc) {
       if (!this.earlierSeparatorInserted && needEarlierSeparator) {
         newItems = [earlierSeparator, ...newItems]
         this.earlierSeparatorInserted = true

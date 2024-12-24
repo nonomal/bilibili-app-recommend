@@ -19,8 +19,8 @@ export const getBackupOmitPaths: () => LeafSettingsPath[] = () => [
   // 无关紧要
   'fav.addSeparator',
 
-  'watchlaterUseShuffle',
   'watchlaterAddSeparator',
+  'watchlaterItemsOrder',
 
   'popularWeeklyUseShuffle',
   'popularGeneralUseAnonymous',
